@@ -1,14 +1,25 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "quiz_db";
+include ("config.php");
 
-$conn = new mysqli($servername, $username, $password, $database);
+#$userPassword = "password";
+#echo $hashedPassword = password_hash($userPassword, PASSWORD_BCRYPT);
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+/*
+$p2= '$2y$10$kzpGQ5bFdrXIG4LesTqyMOAZedZJ3D04ilQiSYXvrtcRWClQJmRVy';
+
+    $p1 = htmlspecialchars("password");
+    echo  password_hash($p1, PASSWORD_BCRYPT);
+
+if( password_verify($p1,$p2)){
+	echo "h1";	
 }else{
-	echo "Connected";
-}
+	echo "h2";
+} */
+
+
+#$plainPassword = "password";
+//Hash the password using BCRYPT algorithm
+#echo $hashedPassword = password_hash($plainPassword, PASSWORD_BCRYPT);
+
+
 ?>

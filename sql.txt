@@ -1,0 +1,8 @@
+CREATE TABLE `quiz_db`.`users` (`id` INT NOT NULL AUTO_INCREMENT , `username` VARCHAR(255) NOT NULL , `mail` VARCHAR(255) NOT NULL , `password` VARCHAR(255) NOT NULL , `key1` VARCHAR(255) NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB; 
+
+
+-- Example of hashing a password in PHP and inserting into the table
+INSERT INTO `quiz_db`.`users` (`username`, `mail`, `password`, `key`) 
+VALUES ('example_user', 'user@example.com', '$2y$10$SomeRandomSaltHash', 'some_key');
+
+INSERT INTO `users` (`id`, `username`, `mail`, `password`, `key1`) VALUES (NULL, 'arnob', 'arnob@arnob.com', '$2y$10$1CtjJoLXS08EKprygJZQ7u4esbQ1rrOC.sAGuJdNUivTBWuY4hTFe', '2n38b8#O@*B@GDSJHSHDi'); 
