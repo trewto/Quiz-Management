@@ -168,9 +168,11 @@ function insertAnswer($questionId, $userId, $answerText, $isCorrect) {
 
 $pagefunction = [
     'home' => ['homePage', 'Home'],
-    'add_new_question' => ['add_new_questionPage', 'Add Question'],
+    'add_new_question' => ['add_new_questionPage', 'AddQ'],
     'view_questions' => ['viewQuestionsPage', 'Questions'],
-    'edit_question' => ['editQuestionPage', 'Edit question'],
+    'edit_question' => ['editQuestionPage', 'EditQ'],
+	'print_question_paper' => ['printQuestionPaperPage', 'Print'],
+	'reprint' => ['reprintQuestionPaperPage', 'Reprint'],
     #'dashboard' => ['dashboardPage', 'Dashboard'],
     
     'changepassword' => ['changePasswordPage', 'Change Password'],
@@ -192,8 +194,322 @@ if (isset($_GET['pagename'])){
 	    homePage();
 }
 footerpage();
+
+
+function printQuestionPaperPage(){
+    if (!isLoggedIn()){ 
+        die("Serious Error"); 
+    }
+    
+    global $conn;
+
+    // Retrieve all questions from the database
+    $sql = "SELECT id, question_text FROM questions ORDER BY RAND()"; // Retrieve 20 random questions for the A4 page
+    $result = $conn->query($sql);
+	$qansdataidlist  = "";
+    if ($result->num_rows > 0) {
+        echo "<h2 class='text-center mb-4' style='font-size: 16px;'>MCQ Question Paper</h2>"; // Adjust font size for the title
+
+        // Add a checkbox for marking correct answers
+        echo "<label><input type='checkbox' id='markCorrectAnswers' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
+        echo "<label><input type='checkbox' id='correctanswerlist' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
+
+        $questionCounter = 1; // Initialize question counter
+		
+		$ques_ans_list = [];
+		
+        // Loop through each question
+        while ($row = $result->fetch_assoc()) {
+            $questionId = $row['id'];
+            $questionText = $row['question_text'];
+			
+			
+			$qansdataidlist = $qansdataidlist."#". $questionId;
+            // Display only the question ID on the right side
+            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+            echo "<div style='width: 70%;'><b>$questionCounter) $questionText</b></div>"; // Reduced font size for question text
+			
+            // Move [ID:$questionId] to the right side
+            echo "<div style='width: 28%; text-align: right;'>[ID:$questionId]</div>";
+
+            echo "</div>";
+			$ques_ans_list[$questionCounter] =  [];
+            // Retrieve and display answers for the current question
+            $answersSql = "SELECT id, answer_text, is_correct FROM answers WHERE question_id = ? ORDER BY RAND()";
+            $stmt = $conn->prepare($answersSql);
+            $stmt->bind_param("i", $questionId);
+            $stmt->execute();
+            $stmt->bind_result($answerId, $answerText, $isCorrect);
+
+            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+
+            $index = 65; // ASCII code for 'A'
+
+            while ($stmt->fetch()) {
+                // Display each answer in one line with alphabetical count (A, B, C, ..., J)
+                $alphabeticalCount = chr($index);
+
+                // Add a class to correct answers if the checkbox is checked
+                $boldClass = ($isCorrect) ? 'bold-answer' : '';
+				if($isCorrect){
+					$ques_ans_list[$questionCounter][] = chr($index) ;
+				}
+                echo "<div style='width: 48%;' class='$boldClass'><span style='margin-right: 10px;'>$alphabeticalCount)</span>";
+                echo "$answerText</div>"; // Reduced font size for answer text
+                $index++;
+				$qansdataidlist = $qansdataidlist."@".$answerId; 
+            }
+			
+			
+
+// Add inline JavaScript to toggle bold class on correct answers
+
+
+            echo "</div>";
+            echo "<br>"; // Add a line break between questions
+            $questionCounter++; // Increment question counter
+        }
+		
+		
+		echo "<div class='correctanswerlistshow'>";
+		foreach ($ques_ans_list as $questionNumber => $answerNumbers) {
+            echo "<b> Q-$questionNumber: </b>" . implode(", ", $answerNumbers) . "&nbsp;&nbsp;&nbsp;";
+        }
+		echo "</div>";
+		echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
+		
+		
+		#var_dump($ques_ans_list);
+	 echo "<script>
+            function toggleBoldAnswers() {
+                var checkbox = document.getElementById('markCorrectAnswers');
+                var answers = document.querySelectorAll('.bold-answer');
+
+                if (checkbox.checked) {
+                    answers.forEach(function (answer) {
+                        answer.style.fontWeight = 'bold';
+                        
+                    });
+                } else {
+                    answers.forEach(function (answer) {
+                        answer.style.fontWeight = 'normal';
+                        
+                    });
+                }
+            }
+			
+			  function togglecorrectAnswers() {
+                var checkbox = document.getElementById('correctanswerlist');
+                var opt = document.querySelectorAll('.correctanswerlistshow');
+
+                if (checkbox.checked) {
+                    opt.forEach(function (opt) {
+                        opt.style.display = 'block';
+                        
+                    });
+                } else {
+                    opt.forEach(function (opt) {
+                        opt.style.display = 'none';
+                        
+                    });
+                }
+            }
+        </script>";
+
+    } else {
+        echo "<p class='text-center mt-5'>No questions found.</p>";
+    }
+}
+
+
+function reprintQuestionPaperPage(){
+    if (!isLoggedIn()){ 
+        die("Serious Error"); 
+    }
+    
+	
+	 
+	if(!isset($_POST["reprinttext"])){
+		?>
+	  <form method="post" action="<?php echo currenturl(); ?>">
+		<div class="form-group">
+		  <label for="exampleTextarea">Your Textarea Label:</label>
+		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="8" placeholder="Enter your text here..."></textarea>
+		</div>
+		<button type="submit" class="btn btn-primary">Submit</button>
+	  </form>
+		<?php		
+	}else{
+	?>
+	  <form method="post" action="<?php echo currenturl(); ?>">
+		<div class="form-group">
+		  <label for="exampleTextarea">Your Textarea Label:</label>
+		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="2" placeholder="Enter your text here..."></textarea>
+		</div>
+		<button type="submit" class="btn btn-primary">Submit</button>
+	  </form>
+		<?php		
+	#echo $string = "5@20@17@19@18#4@15@13@14@16#2@5@7@6@8#1@3@1@2@4#3@12@11@9@10";
+	$string  = htmlspecialchars($_POST['reprinttext']);
+	// Step 1: Split the string using #
+	$step1Array = explode("#", $string);
+	
+	#var_dump($step1Array);
+	// Step 2: Initialize the final array
+	$finalArray = [];
+
+	// Step 3: Iterate over the results from step 1
+	foreach ($step1Array as $step1Item) {
+		// Step 4: Split each item using @
+		$step2Array = explode("@", $step1Item);
+
+		// Step 5: Add the resulting array to the final array
+		$finalArray[] = $step2Array;
+	}
+
+	// Display the final array
+	#var_dump($finalArray);
+	
+	
+    
+	$qansdataidlist  = "";
+    if (1==1) {
+        echo "<h2 class='text-center mb-4' style='font-size: 16px;'>MCQ Question Paper</h2>"; // Adjust font size for the title
+
+        // Add a checkbox for marking correct answers
+        echo "<label><input type='checkbox' id='markCorrectAnswers' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
+        echo "<label><input type='checkbox' id='correctanswerlist' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
+
+        $questionCounter = 1; // Initialize question counter
+		
+		$ques_ans_list = [];
+		
+        // Loop through each question
+		
+		foreach ( $finalArray as $row ) {
+        #while ($row = $result->fetch_assoc()) {
+            $questionId = $row[0];
+			if(getCurrentQuestionText($questionId)){
+				$questionText = getCurrentQuestionText($questionId); 
+			}else{continue;}
+			
+			
+			$qansdataidlist = $qansdataidlist."#". $questionId;
+            // Display only the question ID on the right side
+            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+            echo "<div style='width: 70%;'><b>$questionCounter) $questionText</b></div>"; // Reduced font size for question text
+			
+            // Move [ID:$questionId] to the right side
+            echo "<div style='width: 28%; text-align: right;'>[ID:$questionId]</div>";
+
+            echo "</div>";
+			$ques_ans_list[$questionCounter] =  [];
+            // Retrieve and display answers for the current question
+            
+			
+			
+			
+            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+
+            $index = 64; // ASCII code for 'A'-1
+			
+			foreach ( $row as $ansI ) {
+				$answerId = $ansI;
+				$index++;
+				if($index==65){continue;}
+				if(getCurrentAnswerDetails($answerId)){
+				$ansdetail = getCurrentAnswerDetails($answerId);
+				}else{
+					
+					continue;
+				}
+				$isCorrect = $ansdetail['is_correct'];
+				$answerText = $ansdetail['answer_text'];
+				#var_dump($ansdetail);
+                // Display each answer in one line with alphabetical count (A, B, C, ..., J)
+                $alphabeticalCount = chr($index);
+
+                // Add a class to correct answers if the checkbox is checked
+                $boldClass = ($isCorrect) ? 'bold-answer' : '';
+				if($isCorrect){
+					$ques_ans_list[$questionCounter][] = chr($index) ;
+				}
+                echo "<div style='width: 48%;' class='$boldClass'><span style='margin-right: 10px;'>$alphabeticalCount)</span>";
+                echo "$answerText</div>"; // Reduced font size for answer text
+                
+				$qansdataidlist = $qansdataidlist."@".$answerId; 
+            }
+			
+			
+
+// Add inline JavaScript to toggle bold class on correct answers
+
+
+            echo "</div>";
+            echo "<br>"; // Add a line break between questions
+            $questionCounter++; // Increment question counter
+        }
+		
+		
+		echo "<div class='correctanswerlistshow'>";
+		foreach ($ques_ans_list as $questionNumber => $answerNumbers) {
+            echo "<b> Q-$questionNumber: </b>" . implode(", ", $answerNumbers) . "&nbsp;&nbsp;&nbsp;";
+        }
+		echo "</div>";
+		echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
+		
+		
+		#var_dump($ques_ans_list);
+	 echo "<script>
+            function toggleBoldAnswers() {
+                var checkbox = document.getElementById('markCorrectAnswers');
+                var answers = document.querySelectorAll('.bold-answer');
+
+                if (checkbox.checked) {
+                    answers.forEach(function (answer) {
+                        answer.style.fontWeight = 'bold';
+                        
+                    });
+                } else {
+                    answers.forEach(function (answer) {
+                        answer.style.fontWeight = 'normal';
+                        
+                    });
+                }
+            }
+			
+			  function togglecorrectAnswers() {
+                var checkbox = document.getElementById('correctanswerlist');
+                var opt = document.querySelectorAll('.correctanswerlistshow');
+
+                if (checkbox.checked) {
+                    opt.forEach(function (opt) {
+                        opt.style.display = 'block';
+                        
+                    });
+                } else {
+                    opt.forEach(function (opt) {
+                        opt.style.display = 'none';
+                        
+                    });
+                }
+            }
+        </script>";
+
+    } else {
+        echo "<p class='text-center mt-5'>No questions found.</p>";
+    }
+	
+	}
+}
+
+
+
 function viewQuestionsPage(){
-    if (!isLoggedIn()){ die("Serious Error"); }
+    if (!isLoggedIn()){ 
+        die("Serious Error"); 
+    }
+    
     global $conn;
 
     // Retrieve all questions from the database
@@ -201,7 +517,8 @@ function viewQuestionsPage(){
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
-        echo "<h2>View Questions</h2>";
+        echo "<div class='container mt-4'>";
+        echo "<h2 class='text-center mb-4'>Question Paper</h2>";
 
         // Loop through each question
         while ($row = $result->fetch_assoc()) {
@@ -209,11 +526,16 @@ function viewQuestionsPage(){
             $questionText = $row['question_text'];
 
             // Display the question with an "Edit" link
-            echo "<div class='card mb-1'>";
+            echo "<div class='card mb-4'>";
             echo "<div class='card-body'>";
-            echo "<h5 class='card-title'>Question ID: $questionId</h5>";
+            
+            // Question ID and Edit button side by side
+            echo "<div class='d-flex justify-content-between align-items-center'>";
+                echo "<h5 class='card-title'>Question ID: $questionId</h5>";
+                echo "<a href='index.php?pagename=edit_question&id=$questionId' class='btn btn-small btn-primary'>Edit Question</a>";
+            echo "</div>";
+            
             echo "<p class='card-text'>$questionText</p>";
-            echo "<a href='?pagename=edit_question&id=$questionId' class='btn btn-primary'>Edit</a>";
 
             // Retrieve and display answers for the current question
             $answersSql = "SELECT id, answer_text, is_correct FROM answers WHERE question_id = ?";
@@ -222,30 +544,35 @@ function viewQuestionsPage(){
             $stmt->execute();
             $stmt->bind_result($answerId, $answerText, $isCorrect);
 
-            echo "<ul class='list-group list-group-flush'>";
+            echo "<div class='row'>";
             while ($stmt->fetch()) {
-                // Display each answer
-                echo "<li class='list-group-item'>";
+                // Display each answer in two columns
+                echo "<div class='col-md-6 mb-2'>";
                 echo "<div class='d-flex justify-content-between align-items-center'>";
-                echo "<p>$answerText</p>";
+                echo "<p class='mb-0'>$answerText</p>";
 
                 // Display a green checkmark (✓) for correct answers
                 if ($isCorrect) {
-                    echo "<span class='badge bg-success'>&#x2713;</span>";
+                    echo "<span class='badge bg-success'>&#x2713; Correct</span>";
                 }
 
                 echo "</div>";
-                echo "</li>";
+                echo "</div>";
             }
-            echo "</ul>";
+            echo "</div>";
 
             echo "</div>";
             echo "</div>";
         }
+
+        echo "</div>";
     } else {
-        echo "<p>No questions found.</p>";
+        echo "<p class='text-center mt-5'>No questions found.</p>";
     }
 }
+
+
+
 // Function to get the current question text from the database
 function getCurrentQuestionText($questionId) {
     global $conn;
@@ -560,7 +887,8 @@ function headerpage(){
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Quiz App</title>
         <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 		<style>
             body {
                 background-color: #f8f9fa;
@@ -577,7 +905,19 @@ function headerpage(){
 			textarea {
 				margin-top: 0.5rem !important;
 				margin-bottom: 0.5rem !important;
-			}
+			}@media print {
+    /* Add styles for print layout */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .col-md-6 {
+        width: 50%;
+        box-sizing: border-box;
+    }
+}
+
 
            
         </style>
