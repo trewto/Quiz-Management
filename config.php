@@ -631,7 +631,7 @@ function editQuestion($questionId, $newQuestionText) {
 		
 		
 		if ($stmt->error) {
-			echo "Error editing question: " . $stmt->error;
+			# "Error editing question: " . $stmt->error;
 		}
 
 		return $stmt->affected_rows > 0;
@@ -686,7 +686,8 @@ function editQuestionPage() {
 
         // Edit the question
         if (editQuestion($questionId, $newQuestionText)) {
-            echo "Question edited successfully!";
+           # echo "Question edited successfully!";
+			echo "<div class='alert alert-success' role='alert'>Question edited successfully!</div>";
         } else {
             #echo "Error editing question.";
         }
@@ -700,10 +701,39 @@ function editQuestionPage() {
         foreach ($_POST['answers'] as $index => $answerText) {
             $answerId = intval($index);
             $isCorrect = isset($_POST['correctAnswers'][$index]) ? 1 : 0;
-
-            if (!editAnswer($answerId, $answerText, $isCorrect)) {
-               # echo "Error editing answer with ID: $answerId";
-            }
+			
+			if (!empty($answerText)){
+				if (!editAnswer($answerId, $answerText, $isCorrect)) {
+				   # echo "Error editing answer with ID: $answerId";
+				}
+			}else{
+				#remove the answer
+				removeAnswerById($answerId);
+				#echo "<div class='alert alert-danger' role='alert'>Empty Answer Removed</div>"; 
+			}
+        }
+		##var_dump($_POST['newanswers']);
+		#var_dump($_POST['correctnewAnswers']);
+		$_POST['newanswers'] = isset($_POST['newanswers'])?$_POST['newanswers'] : [];
+		$_POST['correctnewAnswers'] = isset($_POST['correctnewAnswers'])?$_POST['correctnewAnswers'] : [];
+		$correctnewAnswers = $_POST['correctnewAnswers'];
+		##var_dump($_POST['newanswers'] );
+		#var_dump($_POST['correctnewAnswers'] );
+		foreach ($_POST['newanswers'] as $index => $answerText) {
+            $answerId = intval($index);
+            #$isCorrect = isset($_POST['correctnewAnswers'][$index]) ? 1 : 0;
+			$isCorrect = in_array($index, $correctnewAnswers) ? 1 : 0;
+			#addAnswerField
+			$userId = isLoggedIn();
+			if (!empty($answerText)){
+				if (!insertAnswer($questionId, $userId, $answerText, $isCorrect)) {
+				   # echo "Error editing answer with ID: $answerId";
+				}
+			}else{
+				#remove the answer
+				#removeAnswerById($answerId);
+				#echo "<div class='alert alert-danger' role='alert'>Empty Answer Removed</div>"; 
+			}
         }
     }
 
@@ -720,26 +750,27 @@ function editQuestionPage() {
         if ($stmt->fetch()) {
             // Display the form to edit the question
             echo "<h2>Edit Question</h2>";
-            echo "<form action='" . currenturl() . "' method='post'>";
+            echo "<form action='" . currenturl() . "' method='post'>";#
             echo "<input type='hidden' name='questionId' value='$questionId'>";
-            echo "<div class='form-group'>";
-            echo "<label for='questionText'>Question Text:</label>";
-            echo "<textarea name='questionText' id='questionText' class='form-control' required>$questionText</textarea>";
-            echo "</div>";
+				echo "<div class='form-group'>";###
+				echo "<label for='questionText'>Question Text:</label>";
+				echo "<textarea name='questionText' id='questionText' class='form-control' required>$questionText</textarea>";
+				echo "</div>";##form-group
 
             // Close the statement for retrieving the question text
             $stmt->close();
 
             // Retrieve and display answers for the current question
-            $answersSql = "SELECT id, answer_text, is_correct FROM answers WHERE question_id = ?";
+            $answersSql = "SELECT id, answer_text, is_correct FROM answers WHERE question_id = ? ORDER BY `answers`.`id` ASC";
             $stmt = $conn->prepare($answersSql);
             $stmt->bind_param("i", $questionId);
             $stmt->execute();
             $stmt->bind_result($answerId, $answerText, $isCorrect);
 
             echo "<h3>Edit Answers</h3>";
-
+			$count_ans= 0;
             while ($stmt->fetch()) {
+				$count_ans = $count_ans + 1; 
                 // Display each answer with an input field
                 echo "<div class='form-group mb-2 mt-2'>";
                 echo "<div class='row align-items-center'>"; // Added 'align-items-center' class
@@ -748,21 +779,27 @@ function editQuestionPage() {
                 echo "<div class='col-md-10 align-items-center'>";
                 #echo "<label for='answer$answerId' class='form-label'>Answer $answerId:</label>";
                 echo "<div class='input-group'>";
-                echo "<input type='text' name='answers[$answerId]' id='answer$answerId' class='form-control answer-input " . ($isCorrect ? "is-valid" : "") . "' value='$answerText' required>";
+                echo "<input type='text' name='answers[$answerId]' id='answer$answerId' class='form-control answer-input " . ($isCorrect ? "is-valid" : "") . "' value='$answerText'>";
                 echo "</div>";
                 echo "</div>";
 
                 // Checkbox column
-                echo "<div class='col-md-2 form-check align-items-center'>";
-                echo "<div class='form-check-input-container'>";
-                echo "<input class='form-check-input form-check-input-lg' type='checkbox' name='correctAnswers[$answerId]' value='$answerId' id='correctAnswerCheckbox$answerId' " . ($isCorrect ? "checked" : "") . ">";
-                echo "<label class='form-check-label' for='correctAnswerCheckbox$answerId'> Correct</label>";
-                echo "</div>";
-                echo "</div>";
+					echo "<div class='col-md-2 form-check align-items-center'>";
+					echo "<div class='form-check-input-container'>";
+					echo "<input class='form-check-input form-check-input-lg' type='checkbox' name='correctAnswers[$answerId]' value='$answerId' id='correctAnswerCheckbox$answerId' " . ($isCorrect ? "checked" : "") . ">";
+					echo "<label class='form-check-label' for='correctAnswerCheckbox$answerId'> Correct</label>";
+					echo "</div>";
+					echo "</div>";
+				echo "</div>";
+					echo "</div>";	
+		
 
-                echo "</div>"; // Close row
-                echo "</div>"; // Close form-group
-				
+			}
+				echo "<div class='form-group mt-3 mb-3'>";
+				echo "<button type='button' id='addAnswerField' class='btn btn-secondary'>Add Answer</button>";
+				echo "</div>";
+
+               
 				echo "<script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.form-check-input').forEach(function (checkbox) {
@@ -779,10 +816,58 @@ function editQuestionPage() {
         });
     });
 </script>";
+
+    // Add JavaScript to dynamically add answer input fields
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var answerIndex = 0; // Set to the next available index
+            
+            document.getElementById('addAnswerField').addEventListener('click', function () {
+                var newAnswerField = createAnswerField(answerIndex);
+                document.querySelector('.form-group.mt-3').insertAdjacentHTML('beforebegin', newAnswerField);
+                answerIndex++;
+            });
+
+            function createAnswerField(index) {
+                return `
+                    <div class='form-group mb-2 mt-2'>
+					
+                        <div class='row align-items-center'>
+						
+						
+						
+                            <div class='col-md-10 align-items-center'>
+                                <div class='input-group'>
+                                    <input type='text' name='newanswers[]' id='newanswer".'${index}'."' class='form-control answer-input' >
+                                </div>
+                            </div>
+							
+							
+                            <div class='col-md-2 form-check align-items-center'>
+                                <div class='form-check-input-container'>
+								
+										<input class='form-check-input form-check-input-lg' type='checkbox' name='correctnewAnswers[]' value=".'${index}'." id='correctAnswerCheckbox".'${index}'."' >
+										
+										<label class='form-check-label' for='correctAnswerCheckbox".'${index}'."'> Correct</label>
+									
+								</div>
+                            </div>
+							
+							
+							
+							
+                        </div>
+                    </div>`;
             }
+        });
+    </script>";
+
+   
+            
 
             echo "<button type='submit' name='submit' class='btn btn-primary'>Update Question</button>";
-            echo "</form>";
+			
+            echo "</form>";#
         } else {
             echo "<p>Question not found.</p>";
         }
@@ -791,6 +876,57 @@ function editQuestionPage() {
     }
 }
 
+// Function to remove a question by question ID
+function removeQuestionById($questionId) {
+    global $conn;
+
+    // Remove question from the questions table
+    $sql = "DELETE FROM questions WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $questionId);
+
+    if ($stmt->execute()) {
+        // Remove corresponding answers from the answers table
+        removeAnswersByQuestionId($questionId);
+
+        echo "Question removed successfully.";
+    } else {
+        echo "Error removing question: " . $conn->error;
+    }
+}
+
+// Function to remove answers by question ID
+function removeAnswersByQuestionId($questionId) {
+    global $conn;
+
+    // Remove answers from the answers table
+    $sql = "DELETE FROM answers WHERE question_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $questionId);
+
+    if ($stmt->execute()) {
+        echo "Answers removed successfully.";
+    } else {
+        echo "Error removing answers: " . $conn->error;
+    }
+}
+
+// Function to remove an answer by answer ID
+function removeAnswerById($answerId) {
+    global $conn;
+
+    // Remove answer from the answers table
+    $sql = "DELETE FROM answers WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $answerId);
+
+    if ($stmt->execute()) {
+       # echo "Answer removed successfully.";
+	   return 1; 
+    } else {
+       return  "Error removing answer: " . $conn->error;
+    }
+}
 
 function add_new_questionPage(){
 	if (!isLoggedIn()){die( "Serious Error");}
@@ -809,8 +945,12 @@ function add_new_questionPage(){
         if ($questionId) {
             // Insert the answers into the database
             foreach ($answers as $index => $answerText) {
-                $isCorrect = in_array($index, $correctAnswers) ? 1 : 0;
-                insertAnswer($questionId, $userId, $answerText, $isCorrect);
+				if (!empty($answerText)){
+					$isCorrect = in_array($index, $correctAnswers) ? 1 : 0;
+					insertAnswer($questionId, $userId, $answerText, $isCorrect);
+				}else{
+					echo "<div class='alert alert-danger' role='alert'>Empty Answer Removed</div>"; 
+				}
             }
 			echo "<div class='alert alert-success' role='alert'>Question and answers added successfully!</div>";
         } else {
@@ -825,6 +965,7 @@ function add_new_questionPage(){
     echo "<label for='questionText'>Question Text:</label>";
     echo "<textarea name='questionText' id='questionText' class='form-control' required></textarea>";
     echo "</div>";
+
 // Answer fields
 for ($i = 0; $i <= 3; $i++) {
     echo "<div class='form-group mb-2 mt-2'>";
@@ -832,14 +973,13 @@ for ($i = 0; $i <= 3; $i++) {
 
     // Input field column
     echo "<div class='col-md-10 align-items-center'>";
-    #echo "<label for='answer$i' class='form-label'>Answer $i:</label>";
     echo "<div class='input-group'>";
-    echo "<input type='text' name='answers[]' id='answer$i' class='form-control answer-input' required>";
+    echo "<input type='text' name='answers[]' id='answer$i' class='form-control answer-input'>";
     echo "</div>";
     echo "</div>";
 
     // Checkbox column
-   echo "<div class='col-md-2 form-check align-items-center'>";
+	echo "<div class='col-md-2 form-check align-items-center'>";
     echo "<div class='form-check-input-container'>";
     echo "<input class='form-check-input form-check-input-lg' type='checkbox' name='correctAnswers[]' value='$i' id='correctAnswerCheckbox$i'>";
     echo "<label class='form-check-label' for='correctAnswerCheckbox$i'> Correct</label>";
@@ -849,7 +989,9 @@ for ($i = 0; $i <= 3; $i++) {
     echo "</div>"; // Close row
     echo "</div>"; // Close form-group
 }
-
+	echo "<div class='form-group mt-3'>";
+    echo "<button type='button' id='addAnswerField' class='btn btn-secondary'>Add Answer</button>";
+    echo "</div>";
 // Add JavaScript to handle the validation styling
 echo "<script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -867,8 +1009,55 @@ echo "<script>
         });
     });
 </script>";
+    #echo "<input type='text' name='answers[]' id='answer$i' class='form-control answer-input'>";
 
 
+
+
+    // Add JavaScript to dynamically add answer input fields
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var answerIndex = 4; // Set to the next available index
+            
+            document.getElementById('addAnswerField').addEventListener('click', function () {
+                var newAnswerField = createAnswerField(answerIndex);
+                document.querySelector('.form-group.mt-3').insertAdjacentHTML('beforebegin', newAnswerField);
+                answerIndex++;
+            });
+
+            function createAnswerField(index) {
+                return `
+                    <div class='form-group mb-2 mt-2'>
+					
+                        <div class='row align-items-center'>
+						
+						
+						
+                            <div class='col-md-10 align-items-center'>
+                                <div class='input-group'>
+                                    <input type='text' name='answers[]' id='answer".'${index}'."' class='form-control answer-input' >
+                                </div>
+                            </div>
+							
+							
+                            <div class='col-md-2 form-check align-items-center'>
+                                <div class='form-check-input-container'>
+								
+										<input class='form-check-input form-check-input-lg' type='checkbox' name='correctAnswers[]' value=".'${index}'." id='correctAnswerCheckbox".'${index}'."' >
+										
+										<label class='form-check-label' for='correctAnswerCheckbox".'${index}'."'> Correct</label>
+									
+								</div>
+                            </div>
+							
+							
+							
+							
+                        </div>
+                    </div>`;
+            }
+        });
+    </script>";
 
     echo "<button type='submit' name='submit' class='btn btn-primary'>Add Question</button>";
     echo "</form>";
