@@ -1,0 +1,14 @@
+- make insert post and edit post in same function 
+- add function of add or edit or delete post meta 
+- make a function  by which add input field in add new question
+- add category meta , input field, separated by comma
+- nav post to view questions 
+- update print options 
+- add question paper
+- save question paper
+
+- add mcq model test option
+- evulate and save 
+
+- add separated user
+- one user cant see another's questions 
