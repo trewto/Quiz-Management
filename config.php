@@ -733,25 +733,10 @@ for ($i = 0; $i <= 3; $i++) {
     echo "</div>"; // Close form-group
 }
 	echo "<div class='form-group mt-3'>";
-    echo "<button type='button' id='addAnswerField' class='btn btn-secondary'>Add Answer</button>";
     echo "</div>";
-// Add JavaScript to handle the validation styling
-echo "<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.form-check-input').forEach(function (checkbox) {
-            checkbox.addEventListener('change', function () {
-                var inputId = 'answer' + checkbox.value;
-                var inputField = document.getElementById(inputId);
+	
+	    echo "<button type='button' id='addAnswerField' class='btn btn-secondary'>Add Answer</button>";
 
-                if (checkbox.checked) {
-                    inputField.classList.add('is-valid');
-                } else {
-                    inputField.classList.remove('is-valid');
-                }
-            });
-        });
-    });
-</script>";
     #echo "<input type='text' name='answers[]' id='answer$i' class='form-control answer-input'>";
 
 
@@ -778,7 +763,7 @@ echo "<script>
 						
                             <div class='col-md-10 align-items-center'>
                                 <div class='input-group'>
-                                    <input type='text' name='answers[]' id='answer".'${index}'."' class='form-control answer-input' >
+                                    <input type='text' name='answers[]' id='answer".'${index}'."' value='answer".'${index}'."' class='form-control answer-input' >
                                 </div>
                             </div>
 							
@@ -801,6 +786,28 @@ echo "<script>
             }
         });
     </script>";
+	
+	
+// Add JavaScript to handle the validation styling
+echo "<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Delegate the click event to a parent element that exists when the page loads
+        document.addEventListener('click', function (event) {
+            var checkbox = event.target.closest('.form-check-input');
+            if (checkbox) {
+                var inputId = 'answer' + checkbox.value;
+                var inputField = document.getElementById(inputId);
+
+                if (checkbox.checked) {
+                    inputField.classList.add('is-valid');
+                } else {
+                    inputField.classList.remove('is-valid');
+                }
+            }
+        });
+    });
+</script>
+";
 
     echo "<button type='submit' name='submit' class='btn btn-primary'>Add Question</button>";
     echo "</form>";
@@ -937,7 +944,7 @@ function editQuestionPage() {
 				echo "</div>";
 
                
-				echo "<script>
+			/*	echo "<script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.form-check-input').forEach(function (checkbox) {
             checkbox.addEventListener('change', function () {
@@ -952,12 +959,30 @@ function editQuestionPage() {
             });
         });
     });
-</script>";
+</script>"; */
+echo "<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Delegate the click event to a parent element that exists when the page loads
+        document.addEventListener('click', function (event) {
+            var checkbox = event.target.closest('.form-check-input');
+            if (checkbox) {
+                var inputId = 'answer' + checkbox.value;
+                var inputField = document.getElementById(inputId);
 
+                if (checkbox.checked) {
+                    inputField.classList.add('is-valid');
+                } else {
+                    inputField.classList.remove('is-valid');
+                }
+            }
+        });
+    });
+</script>
+";
     // Add JavaScript to dynamically add answer input fields
     echo "<script>
         document.addEventListener('DOMContentLoaded', function () {
-            var answerIndex = 0; // Set to the next available index
+            var answerIndex =$count_ans //0; // Set to the next available index
             
             document.getElementById('addAnswerField').addEventListener('click', function () {
                 var newAnswerField = createAnswerField(answerIndex);
@@ -975,7 +1000,7 @@ function editQuestionPage() {
 						
                             <div class='col-md-10 align-items-center'>
                                 <div class='input-group'>
-                                    <input type='text' name='newanswers[]' id='newanswer".'${index}'."' class='form-control answer-input' >
+                                    <input type='text' name='newanswers[]' id='answer".'${index}'."' class='form-control answer-input' >
                                 </div>
                             </div>
 							
@@ -983,9 +1008,9 @@ function editQuestionPage() {
                             <div class='col-md-2 form-check align-items-center'>
                                 <div class='form-check-input-container'>
 								
-										<input class='form-check-input form-check-input-lg' type='checkbox' name='correctnewAnswers[]' value=".'${index}'." id='correctAnswerCheckbox".'${index}'."' >
+										<input class='form-check-input form-check-input-lg' type='checkbox' name='correctnewAnswers[]' value=".'${index}'." id='answer".'${index}'."' >
 										
-										<label class='form-check-label' for='correctAnswerCheckbox".'${index}'."'> Correct</label>
+										<label class='form-check-label' for='answer".'${index}'."'> Correct</label>
 									
 								</div>
                             </div>
