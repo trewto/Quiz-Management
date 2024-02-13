@@ -1,9 +1,11 @@
-- make insert post and edit post in same function 
-- add function of add or edit or delete post meta 
-- make a function  by which add input field in add new question
+- make insert post and edit post in same function   [done]
+- add function of add or edit or delete post meta [done]
+- make a function  by which add input field in add new question[done]
+- nav post to view questions [done]
+
+
 - add category meta , input field, separated by comma
-- nav post to view questions 
-- update print options 
+- update print options
 - add question paper
 - save question paper
 

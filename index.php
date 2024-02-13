@@ -21,5 +21,17 @@ if( password_verify($p1,$p2)){
 //Hash the password using BCRYPT algorithm
 #echo $hashedPassword = password_hash($plainPassword, PASSWORD_BCRYPT);
 
+headerpage();
+if (isset($_GET['pagename'])){
+	$page = htmlspecialchars($_GET['pagename']);
+	if (function_exists($pagefunction[$page][0])) {
+        call_user_func($pagefunction[$page][0]);
+    } else {
+        echo "Invalid pagename.";
+    }
+}else{
+	    homePage();
+}
+footerpage();
 
 ?>

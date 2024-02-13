@@ -196,18 +196,6 @@ $pagefunction = [
 
 
 
-headerpage();
-if (isset($_GET['pagename'])){
-	$page = htmlspecialchars($_GET['pagename']);
-	if (function_exists($pagefunction[$page][0])) {
-        call_user_func($pagefunction[$page][0]);
-    } else {
-        echo "Invalid pagename.";
-    }
-}else{
-	    homePage();
-}
-footerpage();
 
 
 function printQuestionPaperPage(){
@@ -526,11 +514,62 @@ function viewQuestionsPage(){
     
     global $conn;
 
-    // Retrieve all questions from the database
-    $sql = "SELECT id, question_text FROM questions";
-    $result = $conn->query($sql);
+	$currentPage =isset($_GET['page_num']) ? $_GET['page_num']: 1 ; 
+    $questionsPerPage=isset($_GET['per_page']) ? $_GET['per_page']:5;
+	
+	
+	
+	
+    // Calculate the offset
+    $offset = ($currentPage - 1) * $questionsPerPage;
+
+    // Retrieve total number of questions
+    $totalCountSql = "SELECT COUNT(id) AS total FROM questions";
+    $totalCountResult = $conn->query($totalCountSql);
+    $totalCountRow = $totalCountResult->fetch_assoc();
+    $totalCount = $totalCountRow['total'];
+
+    // Calculate total number of pages
+    $totalPages = ceil($totalCount / $questionsPerPage);
+
+
+	
+
+
+
+    // Retrieve questions for the current page
+    $sql = "SELECT id, question_text FROM questions LIMIT ?, ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $offset, $questionsPerPage);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+
+      echo "<div class='text-center'>";
+        if ($currentPage > 1) {
+            echo "<a href='?page_num=" . ($currentPage - 1) . "&pagename=view_questions&per_page=$questionsPerPage' class='btn btn-primary'>Previous</a> ";
+        }
+		
+        if ($currentPage < $totalPages) {
+            echo "<a href='?page_num=" . ($currentPage + 1) . "&pagename=view_questions&per_page=$questionsPerPage' class='btn btn-primary'>Next</a>";
+        }
+		echo " $currentPage / $totalPages";
+        echo "</div>";
+		 $currentUrl = $_SERVER['REQUEST_URI'];
+		echo "<div class='text-center mt-4'>";
+        echo "<form method='get' action='$currentUrl'>";
+        echo "<label for='pageNumber'>Page Number:</label>";
+        echo "<input type='number' id='pageNumber' name='page_num' value='$currentPage' min='1' max='$totalPages'>";
+        echo "<input type='hidden' id='' name='pagename' value='view_questions'>";
+        echo "<label for='questionsPerPage'>Questions Per Page:</label>";
+        echo "<input type='number' id='questionsPerPage' name='per_page' value='$questionsPerPage' min='1'>";
+        echo "<button type='submit' class='btn btn-primary'>Update</button>";
+        echo "</form>";
+        echo "</div>";
 
     if ($result->num_rows > 0) {
+		
+		
         echo "<div class='container mt-4'>";
         echo "<h2 class='text-center mb-4'>Question Paper</h2>";
 
@@ -827,6 +866,9 @@ echo "<script>
     echo "</form>";
 }
 
+include ("functions.php");
+
+
 function add_edit_questionPage(){
  if (!isLoggedIn()) { die("Serious Error"); }
     global $conn;
@@ -841,6 +883,12 @@ function add_edit_questionPage(){
 		$questionId = $_GET['id'];
 		$edit_mode= 1; 
 	}
+	
+	
+	$metainputs = [
+					'cat' => "Category",
+					'typ' => "Type"
+				];
 	
     // Check if the form is submitted
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
@@ -886,13 +934,11 @@ function add_edit_questionPage(){
 					#echo "<div class='alert alert-danger' role='alert'>Empty Answer Removed</div>"; 
 				}
 			}
-			##var_dump($_POST['newanswers']);
-			#var_dump($_POST['correctnewAnswers']);
+			
 			$_POST['newanswers'] = isset($_POST['newanswers'])?$_POST['newanswers'] : [];
 			$_POST['correctnewAnswers'] = isset($_POST['correctnewAnswers'])?$_POST['correctnewAnswers'] : [];
 			$correctnewAnswers = $_POST['correctnewAnswers'];
-			##var_dump($_POST['newanswers'] );
-			#var_dump($_POST['correctnewAnswers'] );
+
 			foreach ($_POST['newanswers'] as $index => $answerText) {
 				$answerId = intval($index);
 				#$isCorrect = isset($_POST['correctnewAnswers'][$index]) ? 1 : 0;
@@ -909,6 +955,38 @@ function add_edit_questionPage(){
 					#echo "<div class='alert alert-danger' role='alert'>Empty Answer Removed</div>"; 
 				}
 			}
+			
+			// meta 
+			/*$metainputs = [
+					'cat' => "Category",
+					'typ' => "Type"
+				];*/
+			//questionId
+			foreach ( $metainputs as $meta_name=>$text) {
+				if(isset($_POST['meta_'.$meta_name])){
+					$metaName = 'meta_'.$meta_name;
+					$metaValue = htmlspecialchars($_POST['meta_'.$meta_name]);;
+					$referenceId = $questionId; 
+					if(getMetaDataId('meta_'.$meta_name,$questionId)){
+						//update
+						
+						
+						updateMetaData($metaName, $metaValue, $referenceId);
+						echo "Updated";
+						
+					}else{
+						///create
+						addMetaData($metaName, $metaValue, $referenceId);
+						echo "created";
+					}
+				}else{
+					// nothing to do // not a valid meta name
+					echo "not isset". 'meta_'.$meta_name; 
+				}
+			}
+				
+				
+			
 		}
     }
 
@@ -1029,6 +1107,31 @@ function add_edit_questionPage(){
 				echo "<button type='button' id='addAnswerField' class='btn btn-secondary'>Add Answer</button>";
 				echo "</div>";
 				
+				
+				echo "Extra Input" ;
+				
+				
+				
+				foreach($metainputs as $metaName => $metaTitle){
+					
+					$meta_id = getMetaDataId('meta_'.$metaName, $questionId);
+					# echo $meta_id ;
+					$value = ($meta_id!=0 ) ? getMetaRowsById($meta_id)[0]['meta_value']:"";
+					
+					#var_dump( getMetaRowsById($meta_id));
+								echo "<div class='col-md-10 align-items-center'>";
+								echo $metaTitle;  
+								#echo "<label for='answer$answerId' class='form-label'>Answer $answerId:</label>";
+								echo "<div class='input-group'>";
+								echo "<input type='text' name='meta_$metaName' id='meta_$metaName' class='form-control answer-input' value='$value'>";
+								echo "</div>";
+								echo "</div>";
+					
+				}
+				
+				
+				
+				
 echo "<script>
     document.addEventListener('DOMContentLoaded', function () {
         // Delegate the click event to a parent element that exists when the page loads
@@ -1097,7 +1200,7 @@ echo "<script>
 			if ( $edit_mode){
 				echo "<button type='submit' name='submit' class='btn btn-primary'>Update Question</button>";	
 			}else{
-				echo "<button type='submit' name='submit' class='btn btn-primary'>Update Question</button>";	
+				echo "<button type='submit' name='submit' class='btn btn-primary'>Add Question</button>";	
 			}
             echo "</form>";#
         } else {
