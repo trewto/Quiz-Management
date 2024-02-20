@@ -172,12 +172,14 @@ $pagefunction = [
    # 'add_new_question' => ['add_new_questionPage', 'AddQ'],
    # 'view_questions' => ['viewQuestionsPage', 'Questions'],
      'view_questions_s' => ['viewQuestionsPage_s', 'Questions_s'],
+     'view_question_paper_nav' => ['viewQuestionPapernav', 'Q_Paper'],
   #  'edit_question' => ['editQuestionPage', 'EditQ'],
-	'print_question_paper' => ['printQuestionPaperPage', 'Print'],
+	#'print_question_paper' => ['printQuestionPaperPage', 'Print'],
+	'question_maker' => ['Question_Maker_page', 'question_maker'],
 	'reprint' => ['reprintQuestionPaperPage', 'Reprint'],
     #'dashboard' => ['dashboardPage', 'Dashboard'],
     'changepassword' => ['changePasswordPage', 'Change Password'],
-    'signin' => ['signinPage', 'Sign In'],
+   # 'signin' => ['signinPage', 'Sign In'],
 	'signout' => ['signoutPage', 'Sign Out'],
     // Add more pages as needed
 ];
@@ -328,30 +330,82 @@ function reprintQuestionPaperPage(){
     if (!isLoggedIn()){ 
         die("Serious Error"); 
     }
-    
+    global $conn ; 
 	
-	 
+	 $qry = "";
 	if(!isset($_POST["reprinttext"])){
+		
+		
+		
+		
+		if ( isset($_GET['paper_id']) ) {
+			$paper_mode = 1; 
+			if (viewPaper($_GET['paper_id'])){
+				$p_id = intval ( $_GET['paper_id'] ) ; 
+				#var_dump( viewPaper($p_id));
+				 $st1 = viewPaper($p_id)['value'];
+				$qs = explode("#",$st1);
+				echo "<br>";
+				$ee1 = [];
+				foreach($qs as $q_id){
+					$ee2_ans= [];
+					$ee2_ans[] = $q_id;
+					
+					
+					#$answersSql = "SELECT id FROM answers WHERE question_id = ? ORDER BY RAND()";
+					$answersSql = "SELECT id FROM answers WHERE question_id = ?";
+					$stmt = $conn->prepare($answersSql);
+					$stmt->bind_param("i", $q_id);
+					$stmt->execute();
+					$stmt->bind_result($answerId);
+
+
+					while ($stmt->fetch()) {
+						#echo $answerId."@";  
+						$ee2_ans[] = $answerId;
+						##echo $answerId ; 
+						#echo "<br>";echo "<br>";
+					}
+					 $ee1[] = implode("@",$ee2_ans);
+					#echo "<br>";
+				}
+				 $qry = implode ("#",$ee1);
+				# var_dump($qry);
+			} else{
+				echo "Paper not found error "; 
+				
+			}
+		}else{
+			$paper_mode = 0; 
+			
+		}
+		
+		
 		?>
 	  <form method="post" action="<?php echo currenturl(); ?>">
 		<div class="form-group">
 		  <label for="exampleTextarea">Your Textarea Label:</label>
-		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="8" placeholder="Enter your text here..."></textarea>
+		  <textarea class="form-control" value="2" name="reprinttext" id="exampleTextarea" rows="8" placeholder="Enter your text here..."><?php echo $qry ; ?></textarea>
 		</div>
 		<button type="submit" class="btn btn-primary">Submit</button>
 	  </form>
 		<?php		
 	}else{
 	?>
-	  <form method="post" action="<?php echo currenturl(); ?>">
-		<div class="form-group">
+	  <form method="post" class="printable-hidden" action="<?php echo currenturl(); ?>">
+		<div class="form-group ">
 		  <label for="exampleTextarea">Your Textarea Label:</label>
-		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="2" placeholder="Enter your text here..."></textarea>
+		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="2" placeholder="Enter your text here..."><?php echo isset($_POST['reprinttext']) ? htmlspecialchars($_POST['reprinttext']) : "" ; ?>
+		  </textarea>
 		</div>
 		<button type="submit" class="btn btn-primary">Submit</button>
 	  </form>
 		<?php		
 	#echo $string = "5@20@17@19@18#4@15@13@14@16#2@5@7@6@8#1@3@1@2@4#3@12@11@9@10";
+	
+	
+	
+	
 	$string  = htmlspecialchars($_POST['reprinttext']);
 	// Step 1: Split the string using #
 	$step1Array = explode("#", $string);
@@ -366,7 +420,9 @@ function reprintQuestionPaperPage(){
 		$step2Array = explode("@", $step1Item);
 
 		// Step 5: Add the resulting array to the final array
-		$finalArray[] = $step2Array;
+		
+			$finalArray[] = $step2Array;
+		
 	}
 
 	// Display the final array
@@ -379,8 +435,8 @@ function reprintQuestionPaperPage(){
         echo "<h2 class='text-center mb-4' style='font-size: 16px;'>MCQ Question Paper</h2>"; // Adjust font size for the title
 
         // Add a checkbox for marking correct answers
-        echo "<label><input type='checkbox' id='markCorrectAnswers' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
-        echo "<label><input type='checkbox' id='correctanswerlist' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
+        echo "<label  class='printable-hidden'><input type='checkbox' id='markCorrectAnswers' class='printable-hidden' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
+        echo "<label class='printable-hidden'><input type='checkbox' id='correctanswerlist'   class='printable-hidden' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
 
         $questionCounter = 1; // Initialize question counter
 		
@@ -398,11 +454,11 @@ function reprintQuestionPaperPage(){
 			
 			$qansdataidlist = $qansdataidlist."#". $questionId;
             // Display only the question ID on the right side
-            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
-            echo "<div style='width: 70%;'><b>$questionCounter) $questionText</b></div>"; // Reduced font size for question text
+            echo "<div   class='mt-2' style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+            echo "<div style='width: 90%;'>$questionCounter) $questionText</div>"; // Reduced font size for question text
 			
             // Move [ID:$questionId] to the right side
-            echo "<div style='width: 28%; text-align: right;'>[ID:$questionId]</div>";
+            echo "<div class='printable-hidden' style='width: 10%; text-align: right; '>[ID:$questionId]</div>";
 
             echo "</div>";
 			$ques_ans_list[$questionCounter] =  [];
@@ -448,7 +504,7 @@ function reprintQuestionPaperPage(){
 
 
             echo "</div>";
-            echo "<br>"; // Add a line break between questions
+           # echo "<br>"; // Add a line break between questions
             $questionCounter++; // Increment question counter
         }
 		
@@ -458,7 +514,7 @@ function reprintQuestionPaperPage(){
             echo "<b> Q-$questionNumber: </b>" . implode(", ", $answerNumbers) . "&nbsp;&nbsp;&nbsp;";
         }
 		echo "</div>";
-		echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
+		//echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
 		
 		
 		#var_dump($ques_ans_list);
@@ -497,6 +553,38 @@ function reprintQuestionPaperPage(){
                 }
             }
         </script>";
+		
+		
+		
+		
+		echo " <button class='btn btn-primary printable-hidden' onclick='togglePrintableView()' >Printable Format</button>
+
+    <!-- Add CSS to hide the printable elements by default -->
+    <style>
+        
+    </style>
+
+    <script>
+        // Function to toggle visibility of printable elements
+        function togglePrintableView() {
+            // Toggle visibility of elements with class 'printable-hidden'
+            var elements = document.querySelectorAll('.printable-hidden');
+            elements.forEach(function(element) {
+                element.style.display = (element.style.display === 'none') ? 'inline' : 'none';
+            });
+
+            // Trigger print if all printable elements are visible
+            var allVisible = true;
+            elements.forEach(function(element) {
+                if (element.style.display === 'none') {
+                    allVisible = false;
+                }
+            });
+            if (!allVisible) {
+                window.print();
+            }
+        }
+    </script>";
 
     } else {
         echo "<p class='text-center mt-5'>No questions found.</p>";
@@ -505,7 +593,7 @@ function reprintQuestionPaperPage(){
 	}
 }
 
-
+/*
 
 function viewQuestionsPage(){
     if (!isLoggedIn()){ 
@@ -623,7 +711,7 @@ function viewQuestionsPage(){
         echo "<p class='text-center mt-5'>No questions found.</p>";
     }
 }
-
+*/
 
 
 // Function to get the current question text from the database
@@ -723,7 +811,7 @@ function editAnswer($answerId, $newAnswerText, $isCorrect) {
     return true;
 }
 
-
+/*
 function add_new_questionPage(){
 	if (!isLoggedIn()){die( "Serious Error");}
     global $conn;
@@ -865,7 +953,7 @@ echo "<script>
     echo "<button type='submit' name='submit' class='btn btn-primary'>Add Question</button>";
     echo "</form>";
 }
-
+*/
 include ("functions.php");
 
 
@@ -1213,7 +1301,7 @@ echo "<script>
  
 }
 
-
+/*
 function editQuestionPage() {
     if (!isLoggedIn()) { die("Serious Error"); }
     global $conn;
@@ -1342,22 +1430,7 @@ function editQuestionPage() {
 				echo "</div>";
 
                
-			/*	echo "<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.form-check-input').forEach(function (checkbox) {
-            checkbox.addEventListener('change', function () {
-                var inputId = 'answer' + checkbox.value;
-                var inputField = document.getElementById(inputId);
-
-                if (checkbox.checked) {
-                    inputField.classList.add('is-valid');
-                } else {
-                    inputField.classList.remove('is-valid');
-                }
-            });
-        });
-    });
-</script>"; */
+	
 echo "<script>
     document.addEventListener('DOMContentLoaded', function () {
         // Delegate the click event to a parent element that exists when the page loads
@@ -1435,7 +1508,7 @@ echo "<script>
         echo "<p>Question ID not provided.</p>";
     }
 }
-
+*/
 // Function to remove a question by question ID
 function removeQuestionById($questionId) {
     global $conn;
@@ -1536,7 +1609,7 @@ function headerpage(){
 		
     </head>
     <body class="bg-light">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light printable-hidden">
             <div class="container width_adjust">
                 <a class="navbar-brand" href="?pagename=home">Quiz App</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

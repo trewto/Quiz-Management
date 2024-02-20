@@ -24,7 +24,7 @@ if( password_verify($p1,$p2)){
 headerpage();
 if (isset($_GET['pagename'])){
 	$page = htmlspecialchars($_GET['pagename']);
-	if (function_exists($pagefunction[$page][0])) {
+	if (isset($pagefunction[$page]) &&function_exists($pagefunction[$page][0])) {
         call_user_func($pagefunction[$page][0]);
     } else {
         echo "Invalid pagename.";

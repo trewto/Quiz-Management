@@ -8,10 +8,13 @@
 SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', meta_value) > 0 ) AS md JOIN questions AS q ON md.referece_id = q.id; 
 
 
-- custom question maker
-- update print options
-- add question paper
-- save question paper
+- custom question maker [done]
+
+- update print options [done]
+
+- add question paper [done]
+- save question paper [done]
+- have to think about the randomness of the answer
 
 - add mcq model test option
 - evulate and save 
