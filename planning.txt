@@ -4,7 +4,11 @@
 - nav post to view questions [done]
 
 
-- add category meta , input field, separated by comma
+- add category meta , input field, separated by comma [done] 
+SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', meta_value) > 0 ) AS md JOIN questions AS q ON md.referece_id = q.id; 
+
+
+- custom question maker
 - update print options
 - add question paper
 - save question paper
