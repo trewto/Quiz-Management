@@ -177,6 +177,7 @@ $pagefunction = [
 	#'print_question_paper' => ['printQuestionPaperPage', 'Print'],
 	'question_maker' => ['Question_Maker_page', 'question_maker'],
 	'reprint' => ['reprintQuestionPaperPage', 'Reprint'],
+	'evaluate' => ['evaluateFun', 'Evaluate'],
     #'dashboard' => ['dashboardPage', 'Dashboard'],
     'changepassword' => ['changePasswordPage', 'Change Password'],
     'signin' => ['signinPage', 'Sign In'],
@@ -206,6 +207,9 @@ function printQuestionPaperPage(){
     }
     
     global $conn;
+	
+
+
 
     // Retrieve all questions from the database
     $sql = "SELECT id, question_text FROM questions ORDER BY RAND()"; // Retrieve 20 random questions for the A4 page
@@ -332,6 +336,15 @@ function reprintQuestionPaperPage(){
     }
     global $conn ; 
 		#var_dump($_POST);
+		
+		
+	if(isset($_POST['reprinttext'])){
+		//$_POST['reprinttext'] = (str_replace(' ', '', $_POST['reprinttext']));
+		$_POST['reprinttext'] = trim($_POST['reprinttext']) ; 
+		}	
+		
+		##var_dump($_POST);
+		#var_dump($_POST['reprinttext']);
 	 $qry = "";
 	 
 	 				$randomizecheckbox =   isset($_POST['Randomize']) ? 1 : "0"; 
@@ -402,30 +415,13 @@ function reprintQuestionPaperPage(){
 	  </form>
 		<?php		
 	}else{
-	?>
-	  <form method="post" class="printable-hidden" action="<?php echo currenturl(); ?>">
-		<div class="form-group ">
-		  <label for="exampleTextarea">Your Textarea Label:</label>
-		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="2" placeholder="Enter your text here..."><?php echo isset($_POST['reprinttext']) ? htmlspecialchars($_POST['reprinttext']) : "" ; ?>
-		  </textarea>
-		</div>
 		
-		 <div class="form-check">
-		 <input class="form-check-input" type="checkbox" value="<?php echo $randomizecheckbox ; ?>" name="Randomize" id="defaultCheck1" <?php echo $randomizecheckbox==1? "checked": "";?>>
-		  <label class="form-check-label" for="defaultCheck1">
-			Randomize
-		  </label>
-		  </div>
-		  
-		<button type="submit" class="btn btn-primary">Submit</button>
-	  </form>
-		<?php		
 	#echo $string = "5@20@17@19@18#4@15@13@14@16#2@5@7@6@8#1@3@1@2@4#3@12@11@9@10";
 	
 	
 	
 	
-	$string  = htmlspecialchars($_POST['reprinttext']);
+	$string  = htmlspecialchars(str_replace(' ', '', $_POST['reprinttext']));
 	// Step 1: Split the string using #
 	$step1Array = explode("#", $string);
 	
@@ -436,6 +432,7 @@ function reprintQuestionPaperPage(){
 	// Step 3: Iterate over the results from step 1
 	foreach ($step1Array as $step1Item) {
 		// Step 4: Split each item using @
+		#$step1Item = intval($step1Item); 
 		$step2Array = explode("@", $step1Item);
 
 		// Step 5: Add the resulting array to the final array
@@ -444,32 +441,35 @@ function reprintQuestionPaperPage(){
 		
 	}
 
+		if ( isset($_POST['Randomize']) && $_POST['Randomize']== 1){
+				shuffle($finalArray);
+			}
 	// Display the final array
 	#var_dump($finalArray);
 	
 	
     
 	$qansdataidlist  = "";
+	$printer = ""  ;
+	 
     if (1==1) {
-        echo "<h2 class='text-center mb-4' style='font-size: 16px;'>MCQ Question Paper</h2>"; // Adjust font size for the title
+        $printer .= "<h2 class='text-center mb-4' style='font-size: 16px;'>MCQ Question Paper</h2>"; // Adjust font size for the title
 
         // Add a checkbox for marking correct answers
-        echo "<label  class='printable-hidden'><input type='checkbox' id='markCorrectAnswers' class='printable-hidden' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
+        $printer .= "<label  class='printable-hidden'><input type='checkbox' id='markCorrectAnswers' class='printable-hidden' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
 		
 		
-        echo "<label class='printable-hidden'><input type='checkbox' id='correctanswerlist'   class='printable-hidden' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
+        $printer .= "<label class='printable-hidden'><input type='checkbox' id='correctanswerlist'   class='printable-hidden' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
 
         $questionCounter = 1; // Initialize question counter
 		
 		$ques_ans_list = [];
 		
         // Loop through each question
-		if ( isset($_POST['Randomize']) && $_POST['Randomize']== 1){
-				shuffle($finalArray);
-			}
+		
 		#shuffle($finalArray);
+		$finalsufflearray = [] ;
 		foreach ( $finalArray as $row ) {
-        #while ($row = $result->fetch_assoc()) {
             $questionId = $row[0];
 			if(getCurrentQuestionText($questionId)){
 				$questionText = getCurrentQuestionText($questionId); 
@@ -478,24 +478,25 @@ function reprintQuestionPaperPage(){
 			
 			$qansdataidlist = $qansdataidlist."#". $questionId;
             // Display only the question ID on the right side
-            echo "<div   class='mt-2' style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
-            echo "<div style='width: 90%;'>$questionCounter) $questionText</div>"; // Reduced font size for question text
+            $printer .= "<div   class='mt-2' style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+            $printer .= "<div style='width: 90%;'>$questionCounter) $questionText</div>"; // Reduced font size for question text
 			
             // Move [ID:$questionId] to the right side
-            echo "<div class='printable-hidden' style='width: 10%; text-align: right; '>[ID:$questionId]</div>";
+            $printer .= "<div class='printable-hidden' style='width: 10%; text-align: right; '>[ID:$questionId]</div>";
 
-            echo "</div>";
+            $printer .= "</div>";
 			$ques_ans_list[$questionCounter] =  [];
             // Retrieve and display answers for the current question
             
 			
 			
 			
-            echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
+            $printer .= "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
 
             $index = 64; // ASCII code for 'A'-1
 			$rownas = [];
 			$i = 0 ; 
+			
 			foreach ( $row as $ansI ){
 				
 				$i++ ;
@@ -508,7 +509,10 @@ function reprintQuestionPaperPage(){
 			if ( isset($_POST['Randomize']) && $_POST['Randomize']== 1){
 				shuffle($rownas);
 			}
+			$p = [];
+			$p[] = $questionId;
 			foreach ( $rownas as $ansI ) {
+				$p[] = $ansI ;
 				$answerId = $ansI;
 				$index++;
 				if($index==65){continue;}
@@ -529,29 +533,59 @@ function reprintQuestionPaperPage(){
 				if($isCorrect){
 					$ques_ans_list[$questionCounter][] = chr($index) ;
 				}
-                echo "<div style='width: 48%;' class='$boldClass'><span style='margin-right: 10px;'>$alphabeticalCount)</span>";
-                echo "$answerText</div>"; // Reduced font size for answer text
+                $printer .= "<div style='width: 48%;' class='$boldClass'><span style='margin-right: 10px;'>$alphabeticalCount)</span>";
+                $printer .= "$answerText</div>"; // Reduced font size for answer text
                 
 				$qansdataidlist = $qansdataidlist."@".$answerId; 
             }
+			$finalsufflearray[]  = implode("@",$p);
 			
 			
 
 // Add inline JavaScript to toggle bold class on correct answers
 
 
-            echo "</div>";
+            $printer .= "</div>";
            # echo "<br>"; // Add a line break between questions
             $questionCounter++; // Increment question counter
         }
+		$string = implode("#",$finalsufflearray);
+		#echo "Random<textarea class='form-control printable-hidden' readonly>$string</textarea>";
+		$currenturl =currenturl() ; 
+		$checked  = $randomizecheckbox==1? 'checked': ''; ; 
+		#var_dump($_POST);
+	echo "<form method='post' class='printable-hidden' action='$currenturl'>
+		<div class='form-group '>
+		  <label for='exampleTextarea'>Your Textarea Label:</label>
+		  <textarea class='form-control' name='reprinttext' id='exampleTextarea' rows='2' placeholder='Enter your text here...'>$string</textarea>
+		</div>
 		
+		 <div class='form-check'>
+		 <input class='form-check-input' type='checkbox' value='1' name='Randomize' id='defaultCheck1' $checked>
+		  <label class='form-check-label' for='defaultCheck1'>
+			Randomize
+		  </label>
+		  </div>
+		  
+		<button type='submit' class='btn btn-primary'>Submit</button>
+	  </form>" ; 
+		echo $printer ; 
 		
 		echo "<div class='correctanswerlistshow'>";
 		foreach ($ques_ans_list as $questionNumber => $answerNumbers) {
             echo "<b> Q-$questionNumber: </b>" . implode(", ", $answerNumbers) . "&nbsp;&nbsp;&nbsp;";
         }
 		echo "</div>";
-		//echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
+		
+		#var_dump($finalArray); 
+		#$string = []; 
+		#foreach ( $finalArray as $b=>$a ) {
+		# $string[] = implode("@",$a)  ; 
+		#}
+		#var_dump($string);
+		#var_dump($finalsufflearray);
+				
+		#echo "<textarea class='form-control' readonly>$qansdataidlist</textarea>";		
 		
 		
 		#var_dump($ques_ans_list);

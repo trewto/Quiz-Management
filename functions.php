@@ -816,3 +816,183 @@ echo "</div>";
         echo "<p class='text-center mt-5'>No questions found.</p>";
     }
 }
+
+function qry_from_paper_id($paper_id){
+	global $conn;
+			if (viewPaper($_GET['paper_id'])){
+				$p_id = intval ( $_GET['paper_id'] ) ; 
+				#var_dump( viewPaper($p_id));
+				 $st1 = viewPaper($p_id)['value'];
+				$qs = explode("#",$st1);
+				echo "<br>";
+				$ee1 = [];
+				foreach($qs as $q_id){
+					$ee2_ans= [];
+					$ee2_ans[] = $q_id;
+					
+					
+					#$answersSql = "SELECT id FROM answers WHERE question_id = ? ORDER BY RAND()";
+					$answersSql = "SELECT id FROM answers WHERE question_id = ?";
+					$stmt = $conn->prepare($answersSql);
+					$stmt->bind_param("i", $q_id);
+					$stmt->execute();
+					$stmt->bind_result($answerId);
+
+
+					while ($stmt->fetch()) {
+						#echo $answerId."@";  
+						$ee2_ans[] = $answerId;
+						##echo $answerId ; 
+						#echo "<br>";echo "<br>";
+					}
+					 $ee1[] = implode("@",$ee2_ans);
+					#echo "<br>";
+				}
+				return $qry = trim(implode ("#",$ee1));
+				# var_dump($qry);
+			}else{
+				return false ; 
+				
+			}
+}
+/*
+function suffle_qry($qry){
+	
+	$string = trim($qry) ;
+	$step1Array = explode("#", $string);
+	foreach ($step1Array as $step1Item) {
+		$step2Array = explode("@", $step1Item);
+		$finalArray[] = $step2Array;
+	}
+	shuffle($finalArray);
+	$newarray =[]; 
+	foreach($finalArray as $row){
+		$i = 0 ; 
+		$ans= []; 
+		foreach ($row as $p){
+			$i++;
+			if($i==1){$qid=$p ; continue;}
+			$ans[] = $p ; 
+		}
+		
+		shuffle($ans);
+		array_unshift($ans, $qid);
+		$newarray[] = $ans; 
+	}
+	$string = "";
+	
+	#var_dump($newarray);
+	$p = []; 
+	foreach ($newarray as $n){
+		$p[] = implode("@",$n);
+		
+	}
+	return $string = trim(implode("#",$p));
+}
+*/
+function suffle_qry($qry) {
+    $string = trim($qry);
+    $step1Array = explode("#", $string);
+    $finalArray = [];
+    foreach ($step1Array as $step1Item) {
+        $step2Array = explode("@", $step1Item);
+		if(!empty($step2Array)){
+			$q_id = $step2Array[0];
+		}
+		array_shift($step2Array);
+        shuffle($step2Array);
+        array_unshift($step2Array,$q_id);
+		#array_unshift($step2Array, array_shift($step2Array)); // Move the first element to the front
+        $finalArray[] = implode("@", $step2Array);
+    }
+    shuffle($finalArray);
+    return implode("#", $finalArray);
+}
+
+
+#function evaluateFun(){}
+function evaluateFun() {
+    if (!isLoggedIn()){ 
+        die("Serious Error"); 
+    }
+    global $conn ; 
+	$currenturl = currenturl();
+	$form =  "<form method='post' class='printable-hidden' action='$currenturl'>
+	<div class='form-group '>
+	  <label for='exampleTextarea'>Your Textarea Label:</label>
+	  <textarea class='form-control' name='reprinttext' id='exampleTextarea' rows='2' placeholder='Enter your text here...'></textarea>
+	</div>
+	  
+	<button type='submit' class='btn btn-primary'>Submit</button>
+  </form>" ; 
+  $paper_id = $_GET['paper_id']; 
+  echo $qry = qry_from_paper_id($paper_id);
+  echo "<br>";
+  #echo suffle_qry($qry);
+	$mode = isset($_POST['submit'])? 1 : 0 ;
+	generate_question_ans_form($qry,$mode);
+	
+	var_dump($_POST ) ;
+}
+
+function generate_question_ans_form($qry,$evaluatemode=0 ) {
+	$marks  = 0 ; 
+	$Tmarks = 0 ; 
+    if ($qry) {
+        $questions = explode("#", $qry);
+        echo "<form method='post'>";
+        foreach ($questions as $question) {
+            $data = explode("@", $question);
+            $questionId = array_shift($data);
+            
+			
+             $isdisabled= $evaluatemode==1? "disabled": "";
+			
+			if(getCurrentQuestionText($questionId)){
+				$Tmarks++ ; 
+				echo "<div>";
+				echo "<p>Question ID: $questionId</p>";
+				echo $questionText = getCurrentQuestionText($questionId); 
+				echo "<br>" ; 
+				$mk = 1 ; 
+				
+				foreach ($data as $answerId) {
+					
+					$ansdetail = getCurrentAnswerDetails($answerId);
+					if($ansdetail){
+						// Retrieve answer text based on answer ID
+						$answerText = $ansdetail['answer_text']; // Implement function to get answer text based on answer ID
+						$isCorrect = $ansdetail['is_correct'];
+						$checked = isset($_POST['answers'][$questionId][$answerId]) ? "checked " : "";
+						echo "<label><input type='checkbox' name='answers[$questionId][$answerId]' value='$answerId'  $checked  $isdisabled>$answerText</label>";
+						if($isCorrect){
+							echo " (This is correct Answer)"; 
+						}
+						if($isCorrect && !isset($_POST['answers'][$questionId][$answerId])){
+							 $mk =  0 ; // you can do negative marking too; 
+						}
+						if(!$isCorrect && isset($_POST['answers'][$questionId][$answerId])){
+							 $mk =  0 ; // you can do negative marking too; 
+						}
+						
+						
+						
+							echo "<br>"; 
+					}
+					
+				}
+				 $marks = $marks + $mk ; 
+				echo "</div>";
+				
+			}
+			
+            
+        }
+		echo isset($marks) ? "<br>Your Marks: $marks/$Tmarks<br>" : "" ; 
+        echo "<button type='submit' name='submit'>Submit</button>";
+        echo "</form>";
+    } else {
+        echo "Error: Paper not found.";
+    }
+}
+
