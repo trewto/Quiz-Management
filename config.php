@@ -179,7 +179,7 @@ $pagefunction = [
 	'reprint' => ['reprintQuestionPaperPage', 'Reprint'],
     #'dashboard' => ['dashboardPage', 'Dashboard'],
     'changepassword' => ['changePasswordPage', 'Change Password'],
-   # 'signin' => ['signinPage', 'Sign In'],
+    'signin' => ['signinPage', 'Sign In'],
 	'signout' => ['signoutPage', 'Sign Out'],
     // Add more pages as needed
 ];
@@ -273,7 +273,7 @@ function printQuestionPaperPage(){
             echo "<br>"; // Add a line break between questions
             $questionCounter++; // Increment question counter
         }
-		
+		#var_dump
 		
 		echo "<div class='correctanswerlistshow'>";
 		foreach ($ques_ans_list as $questionNumber => $answerNumbers) {
@@ -331,8 +331,11 @@ function reprintQuestionPaperPage(){
         die("Serious Error"); 
     }
     global $conn ; 
-	
+		#var_dump($_POST);
 	 $qry = "";
+	 
+	 				$randomizecheckbox =   isset($_POST['Randomize']) ? 1 : "0"; 
+
 	if(!isset($_POST["reprinttext"])){
 		
 		
@@ -379,7 +382,7 @@ function reprintQuestionPaperPage(){
 			$paper_mode = 0; 
 			
 		}
-		
+
 		
 		?>
 	  <form method="post" action="<?php echo currenturl(); ?>">
@@ -387,6 +390,14 @@ function reprintQuestionPaperPage(){
 		  <label for="exampleTextarea">Your Textarea Label:</label>
 		  <textarea class="form-control" value="2" name="reprinttext" id="exampleTextarea" rows="8" placeholder="Enter your text here..."><?php echo $qry ; ?></textarea>
 		</div>
+
+		 <div class="form-check">
+		 <input class="form-check-input" type="checkbox" value="<?php echo $randomizecheckbox ; ?>" name="Randomize" id="defaultCheck1" <?php echo $randomizecheckbox==1? "checked": "";?>>
+		  <label class="form-check-label" for="defaultCheck1">
+			Randomize
+		  </label>
+		  </div>
+
 		<button type="submit" class="btn btn-primary">Submit</button>
 	  </form>
 		<?php		
@@ -398,6 +409,14 @@ function reprintQuestionPaperPage(){
 		  <textarea class="form-control" name="reprinttext" id="exampleTextarea" rows="2" placeholder="Enter your text here..."><?php echo isset($_POST['reprinttext']) ? htmlspecialchars($_POST['reprinttext']) : "" ; ?>
 		  </textarea>
 		</div>
+		
+		 <div class="form-check">
+		 <input class="form-check-input" type="checkbox" value="<?php echo $randomizecheckbox ; ?>" name="Randomize" id="defaultCheck1" <?php echo $randomizecheckbox==1? "checked": "";?>>
+		  <label class="form-check-label" for="defaultCheck1">
+			Randomize
+		  </label>
+		  </div>
+		  
 		<button type="submit" class="btn btn-primary">Submit</button>
 	  </form>
 		<?php		
@@ -436,6 +455,8 @@ function reprintQuestionPaperPage(){
 
         // Add a checkbox for marking correct answers
         echo "<label  class='printable-hidden'><input type='checkbox' id='markCorrectAnswers' class='printable-hidden' onchange='toggleBoldAnswers()'> Mark Correct Answers </label>&nbsp;&nbsp;&nbsp;";
+		
+		
         echo "<label class='printable-hidden'><input type='checkbox' id='correctanswerlist'   class='printable-hidden' onchange='togglecorrectAnswers()'> Bottom  Answers</label><br><br>";
 
         $questionCounter = 1; // Initialize question counter
@@ -443,7 +464,10 @@ function reprintQuestionPaperPage(){
 		$ques_ans_list = [];
 		
         // Loop through each question
-		
+		if ( isset($_POST['Randomize']) && $_POST['Randomize']== 1){
+				shuffle($finalArray);
+			}
+		#shuffle($finalArray);
 		foreach ( $finalArray as $row ) {
         #while ($row = $result->fetch_assoc()) {
             $questionId = $row[0];
@@ -470,8 +494,21 @@ function reprintQuestionPaperPage(){
             echo "<div style='font-size: 11px; display: flex; justify-content: space-between;'>"; // Use flexbox for a two-column layout
 
             $index = 64; // ASCII code for 'A'-1
+			$rownas = [];
+			$i = 0 ; 
+			foreach ( $row as $ansI ){
+				
+				$i++ ;
+				if($i==1){continue;}
+				
+				$rownas[] = $ansI; 
+			}
 			
-			foreach ( $row as $ansI ) {
+		
+			if ( isset($_POST['Randomize']) && $_POST['Randomize']== 1){
+				shuffle($rownas);
+			}
+			foreach ( $rownas as $ansI ) {
 				$answerId = $ansI;
 				$index++;
 				if($index==65){continue;}
