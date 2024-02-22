@@ -9,10 +9,13 @@ SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', met
 - add question paper [done]
 - save question paper [done]
 - have to think about the randomness of the answer [ok for now]
+- add mcq model test option [done]
+- evulate [done] 
 
+- make a evaluation database
+- make evaluatoin functions
+- save evaluation
+- can user reexam ?
 
-
-- add mcq model test option
-- evulate and save 
 - add separated user
 - one user cant see another's questions 

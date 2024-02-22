@@ -807,6 +807,7 @@ echo "</div>";
             echo "<p class='card-text'>Timestamp: $paperTimestamp</p>";
             echo "<a href='index.php?pagename=question_maker&paper_id=$paper_id'>Edit</a>";
             echo " <a href='index.php?pagename=reprint&paper_id=$paper_id'>View</a>";
+            echo " <a href='index.php?pagename=evaluate&paper_id=$paper_id'>Exam_link</a>";
             echo "</div>";
             echo "</div>";
         }
@@ -929,18 +930,37 @@ function evaluateFun() {
   echo $qry = qry_from_paper_id($paper_id);
   echo "<br>";
   #echo suffle_qry($qry);
-	$mode = isset($_POST['submit'])? 1 : 0 ;
-	generate_question_ans_form($qry,$mode);
+	 $mode = isset($_POST['submit'])? 1 : 0 ;
 	
-	var_dump($_POST ) ;
+	$answers = isset($_POST['answers']) ? $_POST['answers']: [];
+	$a = evaluate_paper($qry,$answers,$mode);
+	
+	#var_dump($_POST) ;
+	#var_dump($a ) ;
+	echo "<div class='alert alert-success' role='alert'>" ; 
+	echo "Correct Ans: ".$a[1]; 
+	echo "</div>";
+	echo "<div class='alert alert-danger' role='alert'>" ;
+	echo "Wrong Ans: ".$a[2] ; 
+	echo "</div>";
+	echo "<div class='alert alert-warning' role='alert'>" ;
+	echo "Not Touched: ".$a[3] ; 
+	echo "</div>";
+	
+	echo $a[0] ;
+	
+	
 }
 
-function generate_question_ans_form($qry,$evaluatemode=0 ) {
-	$marks  = 0 ; 
-	$Tmarks = 0 ; 
+function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
+	 
+	$num_positive = 0 ; 
+	$num_negative = 0 ; 
+	$num_not_answer = 0 ; 
+	$printdata ="";
     if ($qry) {
         $questions = explode("#", $qry);
-        echo "<form method='post'>";
+        $printdata .=  "<form method='post'>";
         foreach ($questions as $question) {
             $data = explode("@", $question);
             $questionId = array_shift($data);
@@ -949,50 +969,86 @@ function generate_question_ans_form($qry,$evaluatemode=0 ) {
              $isdisabled= $evaluatemode==1? "disabled": "";
 			
 			if(getCurrentQuestionText($questionId)){
-				$Tmarks++ ; 
-				echo "<div>";
-				echo "<p>Question ID: $questionId</p>";
-				echo $questionText = getCurrentQuestionText($questionId); 
-				echo "<br>" ; 
-				$mk = 1 ; 
+				 
+				$printdata .=  "<div class='card'>";
+				$printdata .=  "<div class='card-body'>";
+				$printdata .=  "<p>Question ID: $questionId</p>";
 				
+				$printdata .=  '  <div class="card-title">';
+				
+				$printdata .=  $questionText = getCurrentQuestionText($questionId); 
+				$printdata .=  ' </div>';
+				#$printdata .=  "<br>" ; 
+				#$mk = 1 ; 
+				$pos_ans = 0 ;
+				$neg_ans = 0 ; 
 				foreach ($data as $answerId) {
 					
 					$ansdetail = getCurrentAnswerDetails($answerId);
 					if($ansdetail){
 						// Retrieve answer text based on answer ID
-						$answerText = $ansdetail['answer_text']; // Implement function to get answer text based on answer ID
+						$answerText = $ansdetail['answer_text'];
 						$isCorrect = $ansdetail['is_correct'];
-						$checked = isset($_POST['answers'][$questionId][$answerId]) ? "checked " : "";
-						echo "<label><input type='checkbox' name='answers[$questionId][$answerId]' value='$answerId'  $checked  $isdisabled>$answerText</label>";
-						if($isCorrect){
-							echo " (This is correct Answer)"; 
+						$checked = isset($answers[$questionId][$answerId]) ? "checked " : "";
+						$printdata .=  "<input type='checkbox' class='form-check-input' id='ck-$questionId-$answerId' name='answers[$questionId][$answerId]' value='$answerId'  $checked  $isdisabled>
+						<label for='ck-$questionId-$answerId'>$answerText</label>" ;
+						
+						if($isCorrect && $evaluatemode){
+							#$printdata .=  " (This is correct Answer)";
+							$printdata .= ' <span class="badge rounded-pill text-bg-success"> Right Answer</span>';
+							
 						}
-						if($isCorrect && !isset($_POST['answers'][$questionId][$answerId])){
-							 $mk =  0 ; // you can do negative marking too; 
+						
+						
+						if($isCorrect && isset($answers[$questionId][$answerId])){
+							$pos_ans = 1; 
+							
 						}
-						if(!$isCorrect && isset($_POST['answers'][$questionId][$answerId])){
-							 $mk =  0 ; // you can do negative marking too; 
+						if($isCorrect && !isset($answers[$questionId][$answerId])){
+							#echo $neg_ans =  1 ; // you can do negative marking too; 
+						}
+						
+						if(!$isCorrect && isset($answers[$questionId][$answerId]))
+						{
+							
+							 $neg_ans =  1 ; // you can do negative marking too; 
+							 $printdata .= ' <span class="badge rounded-pill text-bg-danger"> Wrong Answer</span>';
 						}
 						
 						
 						
-							echo "<br>"; 
-					}
-					
+							$printdata .=  "<br>"; 
+					}	
 				}
-				 $marks = $marks + $mk ; 
-				echo "</div>";
+				if($pos_ans == 0 && $neg_ans == 0 ){
+					$num_not_answer += 1; 
+				}
+				
+				 $num_positive += ($neg_ans)==0 ? $pos_ans: 0;
+				 $num_negative += $neg_ans;
+				$printdata .=  "</div>";
+				$printdata .=  "</div>";
 				
 			}
 			
             
         }
-		echo isset($marks) ? "<br>Your Marks: $marks/$Tmarks<br>" : "" ; 
-        echo "<button type='submit' name='submit'>Submit</button>";
-        echo "</form>";
+		if(!$evaluatemode){
+			
+			$printdata .=  "<div class='d-grid gap-2 col-6 mx-auto'><button type='submit' class='btn btn-success' name='submit'>Submit</button></div>";
+		}
+        $printdata .=  "</form>";
     } else {
-        echo "Error: Paper not found.";
+        $printdata .=  "Error: Paper not found.";
     }
+	
+	$re = []; 
+	$re[] = $printdata;
+	$re[] = $num_positive;
+	$re[] = $num_negative;
+	$re[] = $num_not_answer;
+	
+	return $re;
 }
+
 
