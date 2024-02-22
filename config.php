@@ -1650,10 +1650,10 @@ function headerpage(){
                 background-color: #f8f9fa;
 				
             }
-			.width_adjust{
+			/*.width_adjust{
 				
 				max-width:800px
-			}
+			}*/
 			
 			/* Custom CSS for input boxes */
 			input[type="text"],
@@ -1679,8 +1679,8 @@ function headerpage(){
         </style>
 		
     </head>
-    <body class="bg-light">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light printable-hidden">
+    <body class="bg-light" >
+        <nav class="navbar navbar-expand-lg navbar-light bg-light printable-hidden"  >
             <div class="container width_adjust">
                 <a class="navbar-brand" href="?pagename=home">Quiz App</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

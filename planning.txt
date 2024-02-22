@@ -19,3 +19,5 @@ SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', met
 
 - add separated user
 - one user cant see another's questions 
+- cross check all form and $_POST & $_GET
+- add latex / Img / Dynamic Form 

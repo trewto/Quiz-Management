@@ -820,8 +820,8 @@ echo "</div>";
 
 function qry_from_paper_id($paper_id){
 	global $conn;
-			if (viewPaper($_GET['paper_id'])){
-				$p_id = intval ( $_GET['paper_id'] ) ; 
+			if (viewPaper($paper_id)){
+				$p_id = intval ( $paper_id ) ; 
 				#var_dump( viewPaper($p_id));
 				 $st1 = viewPaper($p_id)['value'];
 				$qs = explode("#",$st1);
@@ -918,21 +918,56 @@ function evaluateFun() {
     }
     global $conn ; 
 	$currenturl = currenturl();
-	$form =  "<form method='post' class='printable-hidden' action='$currenturl'>
+	
+  $paper_id = isset($_GET['paper_id'])  ?$_GET['paper_id']: 0; 
+  $qry ="";
+  if ($paper_id) {
+   
+    if (isset($_POST['reprinttext'])){
+		 $qry = htmlspecialchars($_POST['reprinttext']);
+	 }else{
+		 $qry = suffle_qry(qry_from_paper_id($paper_id));
+	 }
+  }else{
+	 
+	 if (isset($_POST['reprinttext'])){
+		 $qry = htmlspecialchars($_POST['reprinttext']);
+	 }else{
+		  echo $form =  "<form method='post' class='printable-hidden' action='$currenturl'>
 	<div class='form-group '>
 	  <label for='exampleTextarea'>Your Textarea Label:</label>
 	  <textarea class='form-control' name='reprinttext' id='exampleTextarea' rows='2' placeholder='Enter your text here...'></textarea>
 	</div>
 	  
 	<button type='submit' class='btn btn-primary'>Submit</button>
-  </form>" ; 
-  $paper_id = $_GET['paper_id']; 
-  echo $qry = qry_from_paper_id($paper_id);
+	</form>" ;
+	  echo $form =  "<form method='get' class='printable-hidden' action='$currenturl'>
+	<div class='form-group '>
+	
+	  <input type='hidden' name='pagename' value='evaluate'>
+	  <input type='text' name='paper_id' class='form-control answer-input' placeholder='Paper Id '>
+	</div>
+	  
+	<button type='submit' class='btn btn-primary'>Submit</button>
+	</form>" ;
+		 
+		 
+	 }
+	  
+  }
+  
   echo "<br>";
   #echo suffle_qry($qry);
 	 $mode = isset($_POST['submit'])? 1 : 0 ;
 	
 	$answers = isset($_POST['answers']) ? $_POST['answers']: [];
+	
+	echo "<div class='mb-3'>
+  <textarea class='form-control' id='exampleFormControlTextarea1' rows='3'>$qry</textarea>
+</div>" ;
+echo "<div class='mb-3'>
+  <textarea class='form-control' id='exampleFormControlTextarea1' rows='3'>".json_encode($answers)."</textarea>
+</div>" ;
 	$a = evaluate_paper($qry,$answers,$mode);
 	
 	#var_dump($_POST) ;
@@ -959,8 +994,10 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 	$num_not_answer = 0 ; 
 	$printdata ="";
     if ($qry) {
+
         $questions = explode("#", $qry);
         $printdata .=  "<form method='post'>";
+		$printdata .= "<input type='hidden' name='reprinttext' value='$qry'>";
         foreach ($questions as $question) {
             $data = explode("@", $question);
             $questionId = array_shift($data);
@@ -981,7 +1018,8 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 				#$printdata .=  "<br>" ; 
 				#$mk = 1 ; 
 				$pos_ans = 0 ;
-				$neg_ans = 0 ; 
+				$neg_ans = 0 ;
+				$ckbutnot_ans = 0 ; 
 				foreach ($data as $answerId) {
 					
 					$ansdetail = getCurrentAnswerDetails($answerId);
@@ -1004,13 +1042,17 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 							$pos_ans = 1; 
 							
 						}
+						#$printdata .= $questionId."-".$answerId;
 						if($isCorrect && !isset($answers[$questionId][$answerId])){
 							#echo $neg_ans =  1 ; // you can do negative marking too; 
+							#$post_ans = 0 ; 
+							#$printdata .= "Correct but not answered";
+							$ckbutnot_ans= 1 ; 
 						}
 						
 						if(!$isCorrect && isset($answers[$questionId][$answerId]))
 						{
-							
+							 #$pos_ans = 0 ; 
 							 $neg_ans =  1 ; // you can do negative marking too; 
 							 $printdata .= ' <span class="badge rounded-pill text-bg-danger"> Wrong Answer</span>';
 						}
@@ -1020,10 +1062,18 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 							$printdata .=  "<br>"; 
 					}	
 				}
+				
+				#if($pos_ans= 1 && $ckbutnot_ans==1){
+				#	$pos_ans = 0 ; 
+				#	$neg_ans = 1 ;
+				#}
+				if($pos_ans == 1 && $ckbutnot_ans==1){
+					$post_ans = 0 ; 
+					$neg_ans = 1; 
+				}
 				if($pos_ans == 0 && $neg_ans == 0 ){
 					$num_not_answer += 1; 
 				}
-				
 				 $num_positive += ($neg_ans)==0 ? $pos_ans: 0;
 				 $num_negative += $neg_ans;
 				$printdata .=  "</div>";
@@ -1047,6 +1097,8 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 	$re[] = $num_positive;
 	$re[] = $num_negative;
 	$re[] = $num_not_answer;
+	$re[] = $qry;
+	$re[] = $answers;
 	
 	return $re;
 }
