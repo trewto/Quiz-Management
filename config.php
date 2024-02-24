@@ -1644,7 +1644,7 @@ function headerpage(){
         <title>Quiz App</title>
         <!-- Bootstrap CSS -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 		<style>
             body {
                 background-color: #f8f9fa;
@@ -1680,25 +1680,27 @@ function headerpage(){
 		
     </head>
     <body class="bg-light" >
-        <nav class="navbar navbar-expand-lg navbar-light bg-light printable-hidden"  >
-            <div class="container width_adjust">
-                <a class="navbar-brand" href="?pagename=home">Quiz App</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                    <ul class="navbar-nav ml-auto">
-                        <?php
-                        foreach ($pagefunction as $pagename => $pageData) {
-                            echo "<li class='nav-item'>";
-                            echo "<a class='nav-link' href='?pagename=$pagename'>$pageData[1]</a>";
-                            echo "</li>";
-                        }
-                        ?>
-                    </ul>
-                </div>
-            </div>
-        </nav>
+        
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light printable-hidden">
+    <div class="container width_adjust">
+        <a class="navbar-brand" href="?pagename=home">Quiz App</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            <ul class="navbar-nav">
+                <?php
+                foreach ($pagefunction as $pagename => $pageData) {
+                    echo "<li class='nav-item'>";
+                    echo "<a class='nav-link' href='?pagename=$pagename'>$pageData[1]</a>";
+                    echo "</li>";
+                }
+                ?>
+            </ul>
+        </div>
+    </div>
+</nav>
     
 	<?php
 	
@@ -1786,7 +1788,7 @@ function changePasswordPage(){
             echo "</form>";
         }
 
-        exit();
+      
 }
 
 
