@@ -15,13 +15,16 @@ SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', met
 - make a evaluation database [done]
 - make evaluatoin functions [done]
 - save evaluation[done]
-- can user reexam ? - may can if previous result deleted 
+- show evaluation results from panel [done]
 
+- can user reexam ? - may can if previous result deleted 
+- cross check all form and $_POST & $_GET
+
+- made token function [done]
 
 
 
 
 - add separated user
 - one user cant see another's questions 
-- cross check all form and $_POST & $_GET
 - add latex / Img / Dynamic Form 

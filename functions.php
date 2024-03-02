@@ -872,7 +872,21 @@ function evaluateFun() {
 	 }else{
 		 $qry = suffle_qry(qry_from_paper_id($paper_id));
 	 }
-  }else{
+  }else if(isset($_GET['watch'])){
+	  $watch_id  = intval($_GET['watch']) ; 
+	  $watch = viewEvaluationRow($watch_id); 
+	  
+	  if($watch) {
+	  $qry = $watch['Qdata'] ; 
+	 # $answers = $watch['Adata'] ; 
+	  $eva_id  = $watch_id ; 
+	  $eva_row = $watch ; 
+	  }
+	 $mode = 1;  
+	
+	  
+  }
+  else{
 	 
 	 if (isset($_POST['reprinttext'])){
 		 $qry = htmlspecialchars($_POST['reprinttext']);
@@ -914,7 +928,7 @@ function evaluateFun() {
 	
 	$mode = isset($_POST['submit'])? 1 : 0 ;
 	if(isset($eva_id)){$mode = 1 ;}
-	
+	if(isset($_GET['watch'])){$mode=1;}
 	
 	 "<div class='mb-3'>
   <textarea class='form-control' id='exampleFormControlTextarea1' rows='3'>$qry</textarea>
@@ -1142,4 +1156,219 @@ function deleteEvaluationRow($id) {
     $stmt->bind_param("i", $id);
     
     return $stmt->execute(); // Return true if deletion was successful
+}
+function viewEvaluationResults() {
+    if (!isLoggedIn()) { 
+        die("Serious Error"); 
+    }
+    
+    global $conn;
+
+    $currentPage = isset($_GET['page_num']) ? htmlspecialchars($_GET['page_num']) : 1; 
+    $resultsPerPage = isset($_GET['per_page']) ? htmlspecialchars($_GET['per_page']) : 5;
+    $searchPaperId = isset($_GET['search_paper_id']) ? htmlspecialchars($_GET['search_paper_id']) : '';
+    $searchUserId = isset($_GET['search_user_id']) ? htmlspecialchars($_GET['search_user_id']) : '';
+
+    // Calculate the offset
+    $offset = ($currentPage - 1) * $resultsPerPage;
+
+    // Construct the WHERE condition based on search parameters
+    $whereCondition = "";
+    if (!empty($searchPaperId)) {
+        $whereCondition .= " AND paper_id = '$searchPaperId'";
+    }
+    if (!empty($searchUserId)) {
+        $whereCondition .=  " AND user_id = '$searchUserId'";
+    }
+
+    // Retrieve evaluation results for the current page and count total rows
+    $sql = "SELECT SQL_CALC_FOUND_ROWS * 
+            FROM evaluation WHERE 1=1
+            $whereCondition
+            ORDER BY timestamp DESC 
+            LIMIT ?, ?";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $offset, $resultsPerPage);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    // Get total count of rows using SQL_CALC_FOUND_ROWS
+    $foundRowsResult = $conn->query("SELECT FOUND_ROWS() AS total");
+    $totalCountRow = $foundRowsResult->fetch_assoc();
+    $totalCount = $totalCountRow['total'];
+
+    // Calculate total number of pages
+    $totalPages = ceil($totalCount / $resultsPerPage);
+
+    // Display pagination and search form
+    echo "<div class='container text-center mt-4'>";
+    echo "<nav aria-label='Page navigation'>";
+    echo "<ul class='pagination justify-content-center'>";
+
+    // Previous button
+    echo "<li class='page-item'>";
+    if ($currentPage > 1) {
+        echo "<a class='page-link' href='?page_num=" . ($currentPage - 1) . "&pagename=view_evaluation_results&per_page=$resultsPerPage&search_paper_id=$searchPaperId&search_user_id=$searchUserId'>Previous</a>";
+    } else {
+        echo "<span class='page-link disabled'>Previous</span>";
+    }
+    echo "</li>";
+
+    // Page numbers
+    echo "<li class='page-item'><span class='page-link'>$currentPage / $totalPages</span></li>";
+
+    // Next button
+    echo "<li class='page-item'>";
+    if ($currentPage < $totalPages) {
+        echo "<a class='page-link' href='?page_num=" . ($currentPage + 1) . "&pagename=view_evaluation_results&per_page=$resultsPerPage&search_paper_id=$searchPaperId&search_user_id=$searchUserId'>Next</a>";
+    } else {
+        echo "<span class='page-link disabled'>Next</span>";
+    }
+    echo "</li>";
+
+    echo "</ul>";
+    echo "</nav>";
+    echo "</div>";
+
+    // Display search form
+    echo "<div class='container mt-4'>";
+    echo "<form method='get' action='".$_SERVER['PHP_SELF']."' class='row justify-content-center'>";
+	
+	echo "<div class='col-md-6 form-group'>";
+echo "<label for='pageNumber'>Page Number:</label>";
+$totalPages = $totalPages ==0 ? 1 : $totalPages ; 
+$currentPage  = $totalPages ==0 ? 1: $currentPage;
+echo "<input type='number' id='pageNumber' name='page_num' value='$currentPage' class='form-control' min='1' max='$totalPages'>";
+echo "</div>";
+echo "<input type='hidden' id='' name='pagename' value='view_evaluation_results'>";
+echo "<div class='col-md-6 form-group'>";
+echo "<label for='questionsPerPage'>Result Per Page:</label>";
+echo "<input type='number' id='questionsPerPage' name='per_page' value='$resultsPerPage' class='form-control' min='1'>";
+echo "</div>";
+
+
+
+    echo "<div class='col-md-6 form-group'>";
+    echo "<label for='searchPaperId'>Search Paper ID:</label>";
+    echo "<input type='text' id='searchPaperId' name='search_paper_id' value='$searchPaperId' class='form-control'>";
+    echo "</div>";
+    echo "<div class='col-md-6 form-group'>";
+    echo "<label for='searchUserId'>Search User ID:</label>";
+    echo "<input type='text' id='searchUserId' name='search_user_id' value='$searchUserId' class='form-control'>";
+    echo "</div>";
+    echo "<div class='col-md-12 form-group'>";
+    echo "<button type='submit' class='btn btn-primary'>Search</button>";
+    echo "</div>";
+    echo "</form>";
+    echo "</div>";
+
+    // Display evaluation results
+    if ($result->num_rows > 0) {
+        echo "<div class='container mt-4'>";
+        echo "<h2 class='text-center mb-4'>Evaluation Results</h2>";
+
+       if ($result->num_rows > 0) {
+    echo "<div class='container mt-4'>";
+    echo "<h2 class='text-center mb-4'>Evaluation Results</h2>";
+    echo "<div class='table-responsive'>";
+    echo "<table class='table table-striped'>";
+    echo "<thead>";
+    echo "<tr>";
+    echo "<th>Eval. ID</th>";
+    echo "<th>User ID</th>";
+    echo "<th>Paper ID</th>";
+    #echo "<th>Qdata</th>";
+   # echo "<th>Adata</th>";
+    echo "<th>Result</th>";
+    echo "<th>Timestamp</th>";
+    echo "</tr>";
+    echo "</thead>";
+    echo "<tbody>";
+
+    // Loop through each evaluation result
+    while ($row = $result->fetch_assoc()) {
+        $evaluationId = $row['id'];
+        $userId = $row['user_id'];
+        $paperId = $row['paper_id'];
+        $Qdata = $row['Qdata'];
+        $Adata = $row['Adata'];
+        $resultData = $row['result'];
+        $timestamp = $row['timestamp'];
+
+        // Display each row as a table row
+        echo "<tr>";
+        echo "<td>$evaluationId <a href= '?pagename=evaluate&watch=$evaluationId' >View</a></td>";
+        echo "<td>$userId</td>";
+        echo "<td>$paperId</td>";
+        #echo "<td>$Qdata</td>";
+       # echo "<td>$Adata</td>";
+        echo "<td>$resultData</td>";
+        echo "<td>$timestamp</td>";
+        echo "</tr>";
+    }
+
+    echo "</tbody>";
+    echo "</table>";
+    echo "</div>"; // Close table-responsive
+    echo "</div>"; // Close container
+} else {
+    echo "<p class='text-center mt-5'>No evaluation results found.</p>";
+}
+
+
+        echo "</div>";
+    } else {
+        echo "<p class='text-center mt-5'>No evaluation results found.</p>";
+    }
+}
+
+
+
+
+// Function to generate a unique token
+function generateToken() {
+    return bin2hex(random_bytes(32)); // Generate a 32-byte random token
+}
+
+// Function to add token to form
+function addTokenToForm($formName='form') {
+    $token1 = generateToken();
+    $token2 = generateToken();
+    $_SESSION[$token2 . '_token'] = $token1; // Store token in session for verification
+    $a =  "<input type='hidden' name='{$formName}_token' value='$token1'>";
+    $a .= "<input type='hidden' name='$token1' value='$token2'>";
+	return $a ;
+}
+
+// Function to verify token on form submission
+
+// Function to verify token on form submission
+function verifyToken($formName='form') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $tokenName = $formName . '_token';
+		
+        if (isset($_POST[$tokenName])) {
+             $token1 = $_POST[$tokenName];
+		  $token2 = isset($_POST[$token1]) ? $_POST[$token1] : null;
+		  #var_dump($_POST);
+#var_dump($_SESSION);
+            if ($token2 && isset($_SESSION[$token2 . '_token'])) {
+				#echo 222222222;
+                $sessionToken = $_SESSION[$token2 . '_token'];
+                
+                if ($token1 === $sessionToken) {
+                    // Token is valid, proceed with form submission
+					 unset($_SESSION[$token2 . '_token']);
+                    return true;
+                }
+            }
+			
+        }
+        // Token is invalid or missing
+		
+        return false;
+    }
+    // Not a POST request, no need to verify token
+    return true;
 }

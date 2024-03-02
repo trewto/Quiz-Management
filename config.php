@@ -179,6 +179,7 @@ $pagefunction = [
 	#'print_question_paper' => ['printQuestionPaperPage', 'Print'],
 	'reprint' => ['reprintQuestionPaperPage', 'Reprint'],
 	'evaluate' => ['evaluateFun', 'Evaluate'],
+	'view_evaluation_results' => ['viewEvaluationResults', 'Result'],
     #'dashboard' => ['dashboardPage', 'Dashboard'],
     'changepassword' => ['changePasswordPage', 'CP'],
     'signin' => ['signinPage', 'Sign In'],
@@ -340,6 +341,7 @@ function reprintQuestionPaperPage(){
 		
 		
 	if(isset($_POST['reprinttext'])){
+			if(!verifyToken()){die("token erro");}
 		//$_POST['reprinttext'] = (str_replace(' ', '', $_POST['reprinttext']));
 		$_POST['reprinttext'] = trim($_POST['reprinttext']) ; 
 		}	
@@ -411,7 +413,7 @@ function reprintQuestionPaperPage(){
 			Randomize
 		  </label>
 		  </div>
-
+<?php echo addTokenToForm(); ?>
 		<button type="submit" class="btn btn-primary">Submit</button>
 	  </form>
 		<?php		
@@ -567,9 +569,10 @@ function reprintQuestionPaperPage(){
 			Randomize
 		  </label>
 		  </div>
-		  
+		  ".addTokenToForm()."
 		<button type='submit' class='btn btn-primary'>Submit</button>
 	  </form>" ; 
+	    ;
 		echo $printer ; 
 		
 		echo "<div class='correctanswerlistshow'>";
