@@ -12,10 +12,14 @@ SELECT q.* FROM ( SELECT referece_id FROM meta_data WHERE FIND_IN_SET('513', met
 - add mcq model test option [done]
 - evulate [done] 
 
-- make a evaluation database
-- make evaluatoin functions
-- save evaluation
-- can user reexam ?
+- make a evaluation database [done]
+- make evaluatoin functions [done]
+- save evaluation[done]
+- can user reexam ? - may can if previous result deleted 
+
+
+
+
 
 - add separated user
 - one user cant see another's questions 

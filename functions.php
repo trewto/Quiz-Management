@@ -149,21 +149,6 @@ function viewQuestionsPage_s(){
 
     // Calculate total number of pages
     $totalPages = ceil($totalCount / $questionsPerPage);
-/*
-	echo "<div class='container text-center mt-4'>";
-	echo "<div class='btn-group' role='group'>";
-	if ($currentPage > 1) {
-		echo "<a href='?page_num=" . ($currentPage - 1) . "&pagename=view_questions_s&per_page=$questionsPerPage&category=$searchCategory&search=$searchQuestion' class='btn btn-primary'>Previous</a> ";
-	}
-	
-		echo "<div class='mt-2' class='btn btn-primary'>$currentPage / $totalPages</div>";
-
-	if ($currentPage < $totalPages) {
-		echo "<a href='?page_num=" . ($currentPage + 1) . "&pagename=view_questions_s&per_page=$questionsPerPage&category=$searchCategory&search=$searchQuestion' class='btn btn-primary'>Next</a>";
-	}
-	echo "</div>";
-	echo "</div>";
-*/
 
 
 echo "<div class='container text-center mt-4'>";
@@ -198,25 +183,6 @@ echo "</div>";
   
     $currentUrl = $_SERVER['REQUEST_URI'];
 
-/*
-    echo "<div class='text-center mt-4'>";
-    echo "<form method='get' action='$currentUrl'>";
-    echo "<label for='pageNumber'>Page Number:</label>";
-    echo "<input type='number' id='pageNumber' name='page_num' value='$currentPage' min='1' max='$totalPages'>";
-    echo "<input type='hidden' id='' name='pagename' value='view_questions_s'>";
-    echo "<label for='questionsPerPage'>Questions Per Page:</label>";
-    echo "<input type='number' id='questionsPerPage' name='per_page' value='$questionsPerPage' min='1'>";
-	
-    echo "<br><label for='searchCategory'>Search Category:</label>"; // Added label for search category
-    # echo "<label for='searchCategory'>Search Category:</label>";
-
-	echo "<input type='text' id='searchCategory' name='category' value='$searchCategory'>"; // Added input box for search category
-	 echo "<label for='searchQuestion'>Search Category:</label>";
-	    echo "<input type='text' id='searchQuestion' name='search' value='$searchQuestion'>"; // Added input box for search category
-    echo "<button type='submit' class='btn btn-primary'>Update</button>";
-    echo "</form>";
-    echo "</div>";
-*/
 
 	echo "<div class='container mt-4'>";
 echo "<form method='get' action='$currentUrl' class='row justify-content-center'>";
@@ -856,41 +822,7 @@ function qry_from_paper_id($paper_id){
 				
 			}
 }
-/*
-function suffle_qry($qry){
-	
-	$string = trim($qry) ;
-	$step1Array = explode("#", $string);
-	foreach ($step1Array as $step1Item) {
-		$step2Array = explode("@", $step1Item);
-		$finalArray[] = $step2Array;
-	}
-	shuffle($finalArray);
-	$newarray =[]; 
-	foreach($finalArray as $row){
-		$i = 0 ; 
-		$ans= []; 
-		foreach ($row as $p){
-			$i++;
-			if($i==1){$qid=$p ; continue;}
-			$ans[] = $p ; 
-		}
-		
-		shuffle($ans);
-		array_unshift($ans, $qid);
-		$newarray[] = $ans; 
-	}
-	$string = "";
-	
-	#var_dump($newarray);
-	$p = []; 
-	foreach ($newarray as $n){
-		$p[] = implode("@",$n);
-		
-	}
-	return $string = trim(implode("#",$p));
-}
-*/
+
 function suffle_qry($qry) {
     $string = trim($qry);
     $step1Array = explode("#", $string);
@@ -919,11 +851,23 @@ function evaluateFun() {
     global $conn ; 
 	$currenturl = currenturl();
 	
+  
+  
   $paper_id = isset($_GET['paper_id'])  ?$_GET['paper_id']: 0; 
+  
+  
+  
+  
+  
   $qry ="";
   if ($paper_id) {
-   
-    if (isset($_POST['reprinttext'])){
+	
+	  if(viewEvaluationRowIdByUserIdAndPaperId(isLoggedIn(),$paper_id)){
+		  $eva_id = viewEvaluationRowIdByUserIdAndPaperId(isLoggedIn(),$paper_id);
+		  $eva_row =  viewEvaluationRow($eva_id);
+		  $qry = $eva_row['Qdata'];;
+	  }
+     else if (isset($_POST['reprinttext'])){
 		 $qry = htmlspecialchars($_POST['reprinttext']);
 	 }else{
 		 $qry = suffle_qry(qry_from_paper_id($paper_id));
@@ -957,30 +901,56 @@ function evaluateFun() {
   }
   
   echo "<br>";
-  #echo suffle_qry($qry);
-	 $mode = isset($_POST['submit'])? 1 : 0 ;
 	
-	$answers = isset($_POST['answers']) ? $_POST['answers']: [];
+	if(isset($_POST['answers'])){
+		$answers =   $_POST['answers'];
+	}
+	else if( isset($eva_id)){
+		$answers = json_decode($eva_row['Adata'],true);
+		#var_dump($answers);
+	}else{
+		$answers = [];
+	}
 	
-	echo "<div class='mb-3'>
+	$mode = isset($_POST['submit'])? 1 : 0 ;
+	if(isset($eva_id)){$mode = 1 ;}
+	
+	
+	 "<div class='mb-3'>
   <textarea class='form-control' id='exampleFormControlTextarea1' rows='3'>$qry</textarea>
 </div>" ;
-echo "<div class='mb-3'>
+ "<div class='mb-3'>
   <textarea class='form-control' id='exampleFormControlTextarea1' rows='3'>".json_encode($answers)."</textarea>
 </div>" ;
 	$a = evaluate_paper($qry,$answers,$mode);
-	
+	$result = [$a[1] ,$a[2] ,$a[3]];
+	if($paper_id  && isset($_POST['submit'])){
+		if(!isset($eva_id)){
+			#create new row;
+			$insert_id = insertEvaluationRow(isLoggedIn(), $paper_id, $qry, json_encode($answers), json_encode($result)); 
+			echo "insert id is $insert_id" ; 
+		}else{
+			#update again the result
+			echo json_encode($answers) ; 
+			$update = modifyEvaluationRow($eva_id, isLoggedIn(), $paper_id, $qry, json_encode($answers), json_encode($result));
+			if( $update){
+			echo "evaluation Updated###"; 
+			}
+		}
+	}
 	#var_dump($_POST) ;
 	#var_dump($a ) ;
-	echo "<div class='alert alert-success' role='alert'>" ; 
-	echo "Correct Ans: ".$a[1]; 
-	echo "</div>";
-	echo "<div class='alert alert-danger' role='alert'>" ;
-	echo "Wrong Ans: ".$a[2] ; 
-	echo "</div>";
-	echo "<div class='alert alert-warning' role='alert'>" ;
-	echo "Not Touched: ".$a[3] ; 
-	echo "</div>";
+	if( isset($eva_id) or isset($_POST['submit'])){
+		echo "<div class='alert alert-success' role='alert'>" ; 
+		echo "Correct Ans: ".$a[1]; 
+		echo "</div>";
+		echo "<div class='alert alert-danger' role='alert'>" ;
+		echo "Wrong Ans: ".$a[2] ; 
+		echo "</div>";
+		echo "<div class='alert alert-warning' role='alert'>" ;
+		echo "Not Touched: ".$a[3] ; 
+		echo "</div>";
+		}
 	
 	echo $a[0] ;
 	
@@ -1104,3 +1074,72 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 }
 
 
+##evaluation database function 
+
+function insertEvaluationRow($user_id, $p_id, $Qdata, $Adata, $result) {
+    global $conn;
+
+    $stmt = $conn->prepare("INSERT INTO evaluation (user_id, paper_id, Qdata, Adata, result) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("iisss", $user_id, $p_id, $Qdata, $Adata, $result);
+    
+    if ($stmt->execute()) {
+        return $stmt->insert_id; // Return the ID of the inserted row
+    } else {
+        return false; // Insertion failed
+    }
+}
+function viewEvaluationRowIdByUserIdAndPaperId($uid, $p_id) {
+    global $conn;
+
+    $stmt = $conn->prepare("SELECT id FROM evaluation WHERE user_id=? AND paper_id = ?");
+    $stmt->bind_param("ii", $uid, $p_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['id']; // Return the ID of the first row
+    } else {
+        return false; // Row not found
+    }
+}
+
+function viewEvaluationRow($id) {
+    global $conn;
+
+    $stmt = $conn->prepare("SELECT * FROM evaluation WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc(); // Return the row as an associative array
+    } else {
+        return false; // Row not found
+    }
+}
+function modifyEvaluationRow($id, $user_id, $p_id, $Qdata, $Adata, $result) {
+    global $conn;
+
+    $stmt = $conn->prepare("UPDATE evaluation SET user_id = ?, paper_id = ?, Qdata = ?, Adata = ?, result = ? WHERE id = ?");
+    $stmt->bind_param("iisssi", $user_id, $p_id, $Qdata, $Adata, $result, $id);
+    
+    if ($stmt->execute()) {
+        return true; // Return true if update was successful
+    } else {
+        // Log error message
+        error_log("Failed to update evaluation row: " . $stmt->error);
+
+        return false; // Return false indicating update failure
+    }
+}
+
+
+function deleteEvaluationRow($id) {
+    global $conn;
+
+    $stmt = $conn->prepare("DELETE FROM evaluation WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    
+    return $stmt->execute(); // Return true if deletion was successful
+}
