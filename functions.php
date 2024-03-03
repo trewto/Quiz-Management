@@ -436,6 +436,7 @@ function Question_Maker_page(){
 	
 	$paper_id = 0 ; 
 	if(isset($_POST['submit']) ){
+		if(!verifyToken()){die("token error");}
 		if ( isset($_POST['paper_id']) ){
 			
 			$paper_id = viewPaper($_POST['paper_id']) ? $_POST['paper_id'] : 0 ; 
@@ -513,7 +514,7 @@ function Question_Maker_page(){
 	}
 	    #echo "<form action='" . currenturl() . "' method='post'>";
 	    echo "<form action='?pagename=question_maker' method='post'>";
-
+echo addTokenToForm();
 	echo "<div class='form-group mb-2'>					
                         <div class='row align-items-center'>	
                             <div class='col-md-12 align-items-center'>
@@ -544,7 +545,7 @@ function Question_Maker_page(){
 	if(isset($questiondata)){
 		
 		foreach($questiondata as $no => $qid) {
-			echo " <div class='form-group mb-2'>					
+			echo " <div class='form-group mb-2'>				
                         <div class='row align-items-center'>	
                             <div class='col-md-12 align-items-center'>
                                 <div class='input-group'>
@@ -917,6 +918,7 @@ function evaluateFun() {
   echo "<br>";
 	
 	if(isset($_POST['answers'])){
+		if(!verifyToken()){die("token error");}
 		$answers =   $_POST['answers'];
 	}
 	else if( isset($eva_id)){
@@ -981,6 +983,8 @@ function evaluate_paper($qry,$answers=[] ,$evaluatemode=0) {
 
         $questions = explode("#", $qry);
         $printdata .=  "<form method='post'>";
+        $printdata .= addTokenToForm();;
+		
 		$printdata .= "<input type='hidden' name='reprinttext' value='$qry'>";
         foreach ($questions as $question) {
             $data = explode("@", $question);

@@ -341,7 +341,7 @@ function reprintQuestionPaperPage(){
 		
 		
 	if(isset($_POST['reprinttext'])){
-			if(!verifyToken()){die("token erro");}
+			if(!verifyToken()){die("token error");}
 		//$_POST['reprinttext'] = (str_replace(' ', '', $_POST['reprinttext']));
 		$_POST['reprinttext'] = trim($_POST['reprinttext']) ; 
 		}	
@@ -780,6 +780,7 @@ function add_edit_questionPage(){
 	
     // Check if the form is submitted
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+		if(!verifyToken()){die("token error");}
 		
 		if( 1==1 ) {
 			$newQuestionText = htmlspecialchars($_POST['questionText']);
@@ -919,6 +920,7 @@ function add_edit_questionPage(){
 			
 			
 				echo "<form action='" . currenturl() . "' method='post'>";#
+				echo addTokenToForm(); 
 				echo "<input type='hidden' name='questionId' value='$questionId'>";
 				echo "<div class='form-group'>";###
 				echo "<label for='questionText'>Question Text:</label>";
@@ -1292,6 +1294,7 @@ function changePasswordPage(){
 	
 	if (!isLoggedIn()){die( "Serious Error");}
 	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['newPassword'])) {
+			if(!verifyToken()){die();}
             $newPassword = htmlspecialchars($_POST['newPassword']);
             $id = isLoggedIn();
 
@@ -1304,6 +1307,7 @@ function changePasswordPage(){
             // Display the password change form
             echo "<h3>Change Password</h3>";
             echo "<form action='" . currenturl()." ' method='post'>";
+			echo addTokenToForm() ; 
             echo "New Password: <input type='password' name='newPassword' required><br>";
             echo "<input type='submit' value='Change Password'>";
             echo "</form>";
@@ -1318,6 +1322,7 @@ function signinPage(){
 	global $conn;
 // Check if the user is trying to log in
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+	if(!verifyToken()){die();}
     $loginUsername = htmlspecialchars($_POST['loginUsername']);
     $loginPassword = htmlspecialchars($_POST['loginPassword']);
 
@@ -1358,6 +1363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         <h2>Sign In</h2>
         <?php if (isset($loginError)) { echo "<div class='alert alert-danger' role='alert'>$loginError</div>"; } ?>
         <form action="<?php echo currenturl(); ?>" method="post">
+		<?php echo addTokenToForm() ; ?>
             <div class="form-group">
                 <label for="loginUsername">Username:</label>
                 <input type="text" name="loginUsername" id="loginUsername" class="form-control" required>
